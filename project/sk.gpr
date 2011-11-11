@@ -1,0 +1,25 @@
+project Sk is
+
+   for Source_Dirs use ("../src");
+   for Object_Dir use "../obj";
+   for Exec_Dir use "../bin";
+   for Main use ("sk_run.adb");
+
+   package Linker is
+      for Default_Switches ("ada") use ("-g", "-fprofile-generate");
+   end Linker;
+
+   package Binder is
+      for Default_Switches ("ada") use ("-E", "-r");
+   end Binder;
+
+   package Compiler is
+      for Default_Switches ("ada") use ("-g", "-gnatwa", "-gnatVa", "-gnatyabcefhiklmnoprst", "-gnata", "-gnat05", "-gnato");
+   end Compiler;
+
+   package Builder is
+      for Default_Switches ("ada") use ("-j5", "-s", "-k", "-g");
+   end Builder;
+
+end Sk;
+
