@@ -1,0 +1,26 @@
+project Sk6502 is
+
+   for Source_Dirs use (".");
+   for Object_Dir use ".";
+   for Exec_Dir use ".";
+   for Main use ("sk_run.adb");
+
+   package Linker is
+      for Default_Switches ("ada") use ("-g", "-fprofile-generate");
+   end Linker;
+
+   package Binder is
+      for Default_Switches ("ada") use ("-E", "-r");
+   end Binder;
+
+   package Compiler is
+      for Default_Switches ("ada") use ("-g", "-gnatwa", "-gnatVa", "-gnatyabcefhiklmnoprst", "-gnata", "-gnat05", "-gnato");
+   end Compiler;
+
+   package Builder is
+      for Default_Switches ("ada") use ("-j5", "-s", "-k", "-g");
+      for Global_Configuration_Pragmas use "restrictions.txt";
+   end Builder;
+
+end Sk6502;
+
