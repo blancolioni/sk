@@ -54,7 +54,6 @@ package SK.Machine is
 
    procedure Bind (M         : SK_Machine;
                    Name      : String);
-
    --  bind object at top of stack to given name
    --  If Temporary is True, the definition is not moved to ROM
 
@@ -81,10 +80,26 @@ package SK.Machine is
    procedure Push (Context : Function_Call_Context;
                    Value   : Object);
 
+   procedure Push (Context : Function_Call_Context;
+                   Value   : Integer);
+
+   procedure Push (Context   : Function_Call_Context;
+                   Reference : String);
+
    procedure Pop (Context : Function_Call_Context;
                   Value   : out Object);
 
-   procedure Cons (Context : Function_Call_Context);
+   function Marshall_String_To_Object
+     (Context : Function_Call_Context;
+      Value   : String)
+      return Object;
+
+   procedure Apply (Context : Function_Call_Context);
+
+   procedure Compile (Context : Function_Call_Context);
+
+   function Show_Stack_Top (Context    : Function_Call_Context)
+                           return String;
 
    function Low_Level_Show (M    : SK_Machine;
                             Item : Object)

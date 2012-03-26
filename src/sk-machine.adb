@@ -1,4 +1,3 @@
-with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 
 with SK.Compiler;
@@ -11,8 +10,6 @@ with SK.Parser;
 with SK.Stack;
 
 package body SK.Machine is
-
-   Debug_Machine : constant Boolean := False;
 
    type SK_Machine_Record is
       record
@@ -42,6 +39,25 @@ package body SK.Machine is
       SK.Stack.Push (M.Cells, Result);
    end Apply;
 
+   -----------
+   -- Apply --
+   -----------
+
+   procedure Apply
+     (Context : Function_Call_Context)
+   is
+      Cells  : constant SK.Cells.Managed_Cells :=
+                 SK.Cells.Managed_Cells (Context);
+      Result, Left, Right : Object;
+   begin
+      SK.Cells.Allocate (Cells, O_Application, Result);
+      SK.Stack.Pop (Cells, Left);
+      SK.Stack.Pop (Cells, Right);
+      SK.Cells.Set_Car (Cells, Result, Left);
+      SK.Cells.Set_Cdr (Cells, Result, Right);
+      SK.Stack.Push (Cells, Result);
+   end Apply;
+
    ----------
    -- Bind --
    ----------
@@ -51,24 +67,10 @@ package body SK.Machine is
    is
       E : Object := SK.Stack.Top (M.Cells);
    begin
-      if Debug_Machine then
-         Ada.Text_IO.Put_Line ("Bind: " & SK.Images.Image (M.Cells, E));
-      end if;
       E := SK.Compiler.Compile (M.Cells, E);
-      if Debug_Machine then
-         Ada.Text_IO.Put_Line ("Compiles to: " &
-                                 SK.Images.Image (M.Cells, E));
-      end if;
---        E := SK.Compiler.Link (M.Cells, M.Env, E);
---        Ada.Text_IO.Put_Line ("Links to: " & SK.Images.Image (M.Cells, E));
       SK.Stack.Push (M.Cells, E);
 
       SK.Stack.Drop (M.Cells, 2);
-
-      if Debug_Machine then
-         Ada.Text_IO.Put_Line (Name & " = " & SK.Images.Image (M.Cells, E));
-         Ada.Text_IO.Put_Line (Name & " = " & Hex_Image (E));
-      end if;
 
       SK.Environments.Define (M.Env, Name, E);
    end Bind;
@@ -86,24 +88,22 @@ package body SK.Machine is
       return SK.Compiler.Link (M.Cells, M.Env, Result);
    end Compile;
 
-   ----------
-   -- Cons --
-   ----------
+   -------------
+   -- Compile --
+   -------------
 
-   procedure Cons
-     (Context : Function_Call_Context)
-   is
+   procedure Compile (Context : Function_Call_Context) is
       Cells  : constant SK.Cells.Managed_Cells :=
                  SK.Cells.Managed_Cells (Context);
-      Result, Left, Right : Object;
+      E      : Object;
+      Result : Object;
    begin
-      SK.Cells.Allocate (Cells, O_Application, Result);
-      SK.Stack.Pop (Cells, Right);
-      SK.Stack.Pop (Cells, Left);
-      SK.Cells.Set_Car (Cells, Result, Left);
-      SK.Cells.Set_Cdr (Cells, Result, Right);
-      SK.Stack.Push (Cells, Result);
-   end Cons;
+      Pop (Context, E);
+      Result := SK.Compiler.Compile (Cells, E);
+      Result := SK.Compiler.Link
+        (Cells, SK.Environments.Top_Level_Environment, Result);
+      Push (Context, Result);
+   end Compile;
 
    --------------------
    -- Create_Machine --
@@ -149,9 +149,6 @@ package body SK.Machine is
       SK.Stack.Push (M.Cells, E);
       E := SK.Compiler.Link (M.Cells, M.Env, E);
       SK.Stack.Push (M.Cells, E);
-      if Debug_Machine then
-         Ada.Text_IO.Put_Line (Name & " = " & SK.Images.Image (M.Cells, E));
-      end if;
 
       SK.Environments.Define (M.Env, Name, E);
 
@@ -181,10 +178,6 @@ package body SK.Machine is
    procedure Evaluate (M : SK_Machine) is
       V : Object := SK.Stack.Top (M.Cells);
    begin
-      if Debug_Machine then
-         Ada.Text_IO.Put_Line ("Evaluating: " &
-                                 SK.Images.Image (M.Cells, V));
-      end if;
       V := Compile (M, V);
       SK.Evaluator.Evaluate (M.Cells, V);
       SK.Stack.Drop (M.Cells, 1);
@@ -277,6 +270,36 @@ package body SK.Machine is
       return SK.Images.Low_Level_Image (M.Cells, Item);
    end Low_Level_Show;
 
+   -------------------------------
+   -- Marshall_String_To_Object --
+   -------------------------------
+
+   function Marshall_String_To_Object
+     (Context : Function_Call_Context;
+      Value   : String)
+      return Object
+   is
+   begin
+      Push (Context, "[]");
+      for I in reverse Value'Range loop
+         Push (Context, Integer'(Character'Pos (Value (I))));
+         Push (Context, ":");
+         Apply (Context);
+         Apply (Context);
+      end loop;
+
+      --  Ada.Text_IO.Put_Line (SK.Machine.Show_Stack_Top (Context));
+      Compile (Context);
+
+      declare
+         Result : Object;
+      begin
+         Pop (Context, Result);
+         return Result;
+      end;
+
+   end Marshall_String_To_Object;
+
    ------------------
    -- Parse_String --
    ------------------
@@ -347,6 +370,28 @@ package body SK.Machine is
    -- Push --
    ----------
 
+   procedure Push (Context : Function_Call_Context;
+                   Value   : Integer)
+   is
+   begin
+      Push (Context, To_Object (Value));
+   end Push;
+
+   ----------
+   -- Push --
+   ----------
+
+   procedure Push (Context   : Function_Call_Context;
+                   Reference : String)
+   is
+   begin
+      Push (Context, Get_Symbol (Reference));
+   end Push;
+
+   ----------
+   -- Push --
+   ----------
+
    procedure Push
      (M    : SK_Machine;
       Item : System.Address)
@@ -387,6 +432,19 @@ package body SK.Machine is
    is
    begin
       return Show (M, SK.Stack.Top (M.Cells));
+   end Show_Stack_Top;
+
+   --------------------
+   -- Show_Stack_Top --
+   --------------------
+
+   function Show_Stack_Top (Context : Function_Call_Context)
+                           return String
+   is
+   begin
+      return SK.Images.Low_Level_Image
+        (SK.Cells.Managed_Cells (Context),
+         SK.Stack.Top (SK.Cells.Managed_Cells (Context)));
    end Show_Stack_Top;
 
    -----------
