@@ -75,6 +75,30 @@ package body SK.Machine is
       SK.Environments.Define (M.Env, Name, E);
    end Bind;
 
+   ---------
+   -- Car --
+   ---------
+
+   function Car (Context : Function_Call_Context;
+                 Value   : Object)
+                 return Object
+   is
+   begin
+      return SK.Cells.Car (SK.Cells.Managed_Cells (Context), Value);
+   end Car;
+
+   ---------
+   -- Cdr --
+   ---------
+
+   function Cdr (Context : Function_Call_Context;
+                 Value   : Object)
+                 return Object
+   is
+   begin
+      return SK.Cells.Cdr (SK.Cells.Managed_Cells (Context), Value);
+   end Cdr;
+
    -------------
    -- Compile --
    -------------
@@ -182,6 +206,20 @@ package body SK.Machine is
       SK.Evaluator.Evaluate (M.Cells, V);
       SK.Stack.Drop (M.Cells, 1);
       SK.Stack.Push (M.Cells, V);
+   end Evaluate;
+
+   --------------
+   -- Evaluate --
+   --------------
+
+   function Evaluate (Context : Function_Call_Context;
+                      Value   : Object)
+                      return Object
+   is
+      E : Object := Value;
+   begin
+      SK.Evaluator.Evaluate (SK.Cells.Managed_Cells (Context), E);
+      return E;
    end Evaluate;
 
    ---------------
@@ -423,6 +461,18 @@ package body SK.Machine is
       return SK.Images.Image (M.Cells, Item);
    end Show;
 
+   ----------
+   -- Show --
+   ----------
+
+   function Show (Context    : Function_Call_Context;
+                  Item       : Object)
+                  return String
+   is
+   begin
+      return SK.Images.Image (SK.Cells.Managed_Cells (Context), Item);
+   end Show;
+
    --------------------
    -- Show_Stack_Top --
    --------------------
@@ -442,7 +492,7 @@ package body SK.Machine is
                            return String
    is
    begin
-      return SK.Images.Low_Level_Image
+      return SK.Images.Image
         (SK.Cells.Managed_Cells (Context),
          SK.Stack.Top (SK.Cells.Managed_Cells (Context)));
    end Show_Stack_Top;

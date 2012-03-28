@@ -89,6 +89,14 @@ package SK.Machine is
    procedure Pop (Context : Function_Call_Context;
                   Value   : out Object);
 
+   function Car (Context : Function_Call_Context;
+                 Value   : Object)
+                 return Object;
+
+   function Cdr (Context : Function_Call_Context;
+                 Value   : Object)
+                 return Object;
+
    function Marshall_String_To_Object
      (Context : Function_Call_Context;
       Value   : String)
@@ -97,6 +105,14 @@ package SK.Machine is
    procedure Apply (Context : Function_Call_Context);
 
    procedure Compile (Context : Function_Call_Context);
+
+   function Evaluate (Context : Function_Call_Context;
+                      Value   : Object)
+                      return Object;
+
+   function Show (Context    : Function_Call_Context;
+                  Item       : Object)
+                  return String;
 
    function Show_Stack_Top (Context    : Function_Call_Context)
                            return String;
