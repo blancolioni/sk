@@ -1,5 +1,3 @@
-with Ada.Text_IO;
-
 package body SK.Stack is
 
    --------------------
@@ -21,9 +19,6 @@ package body SK.Stack is
       Result : Natural := 0;
    begin
       while SK.Cells.Car (Cells, It) /= Boundary_Object loop
-         Ada.Text_IO.Put_Line ("It:" &
-                               Hex_Image (SK.Cells.Car (Cells, It)));
-         Ada.Text_IO.Put_Line ("Count:" & Result'Img);
          if not Is_Application (It) then
             raise Constraint_Error with "ran out of stack";
          end if;
@@ -86,13 +81,14 @@ package body SK.Stack is
       return Boolean
    is
       It    : Object := SK.Cells.Stack_Top_Cell (Cells);
-      Count : Natural := 0;
    begin
-      while Count < Minimum and It /= Boundary_Object loop
+      for I in 1 .. Minimum loop
+         if SK.Cells.Car (Cells, It) = Boundary_Object then
+            return False;
+         end if;
          It := SK.Cells.Cdr (Cells, It);
-         Count := Count + 1;
       end loop;
-      return Count = Minimum;
+      return True;
    end Minimum_Count;
 
    ---------
