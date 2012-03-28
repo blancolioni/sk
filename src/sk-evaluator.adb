@@ -68,8 +68,16 @@ package body SK.Evaluator is
          end if;
 
          if Is_Combinator (It) then
-            It := SK.Combinators.Evaluate (Cells, Get_Combinator (It));
-            Changed := True;
+            declare
+               New_It : constant Object :=
+                          SK.Combinators.Evaluate
+                            (Cells, Get_Combinator (It));
+            begin
+               if New_It /= Fail_Object then
+                  It := New_It;
+                  Changed := True;
+               end if;
+            end;
          elsif Is_Function (It) then
             declare
                Function_Result : Object;
