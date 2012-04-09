@@ -14,6 +14,8 @@ package body SK is
    Combinator_Base : constant := 2#11000001#;
    Constant_Base   : constant := 2#10000001#;
 
+   Pick_Bits : constant := 2#0011001#;
+
    type Constant_Object_Classification is
      (Nil_Object,
       Empty_List_Object,
@@ -388,6 +390,16 @@ package body SK is
       return Is_Integer (Item);
    end Is_Number;
 
+   -------------
+   -- Is_Pick --
+   -------------
+
+   function Is_Pick (Item : Object) return Boolean is
+   begin
+      return Item mod 256 = Pick_Bits
+        and then Item / 256 mod 256 > 1;
+   end Is_Pick;
+
    ---------------
    -- Is_Symbol --
    ---------------
@@ -405,6 +417,15 @@ package body SK is
    begin
       return Make_Combinator (K);
    end K;
+
+   -------------------
+   -- Last_Argument --
+   -------------------
+
+   function Last_Argument return Object is
+   begin
+      return 2#0010101#;
+   end Last_Argument;
 
    ---------------------
    -- Make_Combinator --
@@ -453,6 +474,15 @@ package body SK is
       return -2**29;
    end Min_Integer;
 
+   -------------------
+   -- Next_Argument --
+   -------------------
+
+   function Next_Argument return Object is
+   begin
+      return 2#0010001#;
+   end Next_Argument;
+
    -----------------
    -- Null_Object --
    -----------------
@@ -461,6 +491,25 @@ package body SK is
    begin
       return Make_Constant (Nil_Object);
    end Null_Object;
+
+   ---------------
+   -- Num_Picks --
+   ---------------
+
+   function Num_Picks (Item : Object) return Positive is
+      pragma Assert (Is_Pick (Item));
+   begin
+      return Positive (Item / 256);
+   end Num_Picks;
+
+   ----------
+   -- Pick --
+   ----------
+
+   function Pick (Num_Choices : Positive) return Object is
+   begin
+      return Object (Num_Choices) * 256 + Pick_Bits;
+   end Pick;
 
    -------
    -- S --

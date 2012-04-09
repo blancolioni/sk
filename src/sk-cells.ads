@@ -1,6 +1,6 @@
 with SK.Memory;
 
-private package SK.Cells is
+package SK.Cells is
 
    type Managed_Cells is private;
 
@@ -13,6 +13,7 @@ private package SK.Cells is
 
    procedure Push (Cells : in Managed_Cells;
                    Item  : in Object);
+   function Top (Cells : Managed_Cells) return Object;
    procedure Pop (Cells : in Managed_Cells);
 
    function Car (Cells : Managed_Cells;
@@ -38,6 +39,23 @@ private package SK.Cells is
    procedure Allocate (Cells  : in     Managed_Cells;
                        Class  : in     Object_Class;
                        Result :    out Object);
+
+   procedure Pop (Cells : Managed_Cells;
+                  Item  : out Object);
+
+   procedure Apply (Cells : Managed_Cells);
+   --  pop top two items from stack, apply them and push the result
+
+   function Evaluate (Cells : Managed_Cells;
+                      Item  : Object)
+                      return Object;
+
+   procedure Compile (Context : Managed_Cells);
+
+   function Marshall_String_To_Object
+     (Context : Managed_Cells;
+      Value   : String)
+      return Object;
 
 private
 
