@@ -102,6 +102,8 @@ package body SK.Evaluator is
             begin
                if not SK.Stack.Minimum_Count (Cells, Arg_Count) then
                   Changed := False;
+               elsif Arg_Count = 0 then
+                  SK.Functions.Evaluate (Id, Cells, It, Changed);
                else
                   SK.Stack.Top (Cells, Args);
                   SK.Stack.Push (Cells, It);
