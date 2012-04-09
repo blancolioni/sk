@@ -145,7 +145,7 @@ package body SK.Machine is
          Env   => SK.Environments.Top_Level_Environment,
          Start => 0);
    begin
-      SK.Functions.Primitives.Add_Primitives (Result.Env);
+      SK.Functions.Primitives.Add_Primitives;
 
       Define_Primitive (Result, "true", "\x.\y.y");
       Define_Primitive (Result, "false", "\x.\y.x");
@@ -260,16 +260,15 @@ package body SK.Machine is
       Arg_Count     : Natural;
       Handler       : Foreign_Function_Handler)
    is
+      pragma Unreferenced (Machine);
       function To_Evaluator is
         new Ada.Unchecked_Conversion (Foreign_Function_Handler,
                                       SK.Functions.Evaluator);
    begin
-      SK.Functions.Add_External_Function
-        (Env     => Machine.Env,
-         Name    => Function_Name,
+      SK.Functions.Bind_Function
+        (Name    => Function_Name,
          Args    => Arg_Count,
-         Handler => To_Evaluator (Handler),
-         Strict  => True);
+         Handler => To_Evaluator (Handler));
    end Import_Function;
 
    ------------------
@@ -361,26 +360,6 @@ package body SK.Machine is
       SK.Stack.Pop (SK.Cells.Managed_Cells (Context), Value);
    end Pop;
 
-   ---------
-   -- Pop --
-   ---------
-
-   procedure Pop
-     (M    : SK_Machine;
-      Item : out System.Address)
-   is
-      function To_Address is
-        new Ada.Unchecked_Conversion (Object_Pair, System.Address);
-      X   : constant Object := SK.Stack.Pop (M.Cells);
-      Ptr : constant Object_Pair :=
-              (SK.Cells.Cdr (M.Cells, X),
-               SK.Cells.Cdr (M.Cells,
-                 SK.Cells.Cdr (M.Cells, X)));
-   begin
-      --  I hope the lowest two bits of an address are always zero!
-      Item := To_Address (Ptr);
-   end Pop;
-
    ----------
    -- Push --
    ----------
@@ -424,29 +403,6 @@ package body SK.Machine is
    is
    begin
       Push (Context, Get_Symbol (Reference));
-   end Push;
-
-   ----------
-   -- Push --
-   ----------
-
-   procedure Push
-     (M    : SK_Machine;
-      Item : System.Address)
-   is
-      function To_Object is
-        new Ada.Unchecked_Conversion (System.Address, Object_Pair);
-      Addr  : constant Object_Pair := To_Object (Item);
-      X     : Array_Of_Objects (1 .. 2);
-   begin
-      --  we wrap up the two halves of a pointer in a C-combinator
-      --  application, which should keep them undisturbed.
-      SK.Cells.Allocate (M.Cells, O_Application, X);
-      SK.Cells.Set_Cdr (M.Cells, X (1), Addr.Left);
-      SK.Cells.Set_Car (M.Cells, X (1), X (2));
-      SK.Cells.Set_Cdr (M.Cells, X (2), Addr.Right);
-      SK.Cells.Set_Car (M.Cells, X (2), C);
-      SK.Cells.Push (M.Cells, X (1));
    end Push;
 
    ----------

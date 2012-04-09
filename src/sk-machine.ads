@@ -44,14 +44,6 @@ package SK.Machine is
      (M    : SK_Machine;
       Item : SK.Object);
 
-   procedure Push
-     (M    : SK_Machine;
-      Item : System.Address);
-
-   procedure Pop
-     (M    : SK_Machine;
-      Item : out System.Address);
-
    procedure Bind (M         : SK_Machine;
                    Name      : String);
    --  bind object at top of stack to given name

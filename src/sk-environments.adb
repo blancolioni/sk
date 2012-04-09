@@ -222,6 +222,16 @@ package body SK.Environments is
    begin
       if Top_Level_Env = null then
          Top_Level_Env := New_Environment (null);
+         Define (Name   => "#I",
+                 Env    => Top_Level_Env,
+                 Defn   => SK.I,
+                 Unsafe => False);
+         for I in 2 .. 15 loop
+            Define (Name   => "#pick" & Integer'Image (-I),
+                    Env    => Top_Level_Env,
+                    Defn   => SK.Pick (I),
+                    Unsafe => False);
+         end loop;
       end if;
       return Top_Level_Env;
    end Top_Level_Environment;

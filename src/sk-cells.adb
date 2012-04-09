@@ -1,5 +1,8 @@
 with Ada.Text_IO;
 
+with SK.Compiler;
+with SK.Environments;
+with SK.Evaluator;
 with SK.Images;
 
 package body SK.Cells is
@@ -71,6 +74,23 @@ package body SK.Cells is
       end loop;
    end Allocate;
 
+   -----------
+   -- Apply --
+   -----------
+
+   procedure Apply
+     (Cells : Managed_Cells)
+   is
+      Result, Left, Right : Object;
+   begin
+      Allocate (Cells, O_Application, Result);
+      Pop (Cells, Left);
+      Pop (Cells, Right);
+      Set_Car (Cells, Result, Left);
+      Set_Cdr (Cells, Result, Right);
+      Push (Cells, Result);
+   end Apply;
+
    --------------------
    -- Can_Have_Child --
    --------------------
@@ -134,6 +154,21 @@ package body SK.Cells is
                             SK.Memory.To_Cell_Address (Item));
    end Cdr;
 
+   -------------
+   -- Compile --
+   -------------
+
+   procedure Compile (Context : Managed_Cells) is
+      E      : Object;
+      Result : Object;
+   begin
+      Pop (Context, E);
+      Result := SK.Compiler.Compile (Context, E);
+      Result := SK.Compiler.Link
+        (Context, SK.Environments.Top_Level_Environment, Result);
+      Push (Context, Result);
+   end Compile;
+
    --------------------------
    -- Create_Managed_Cells --
    --------------------------
@@ -163,6 +198,18 @@ package body SK.Cells is
       return Result;
    end Create_Managed_Cells;
 
+   --------------
+   -- Evaluate --
+   --------------
+
+   function Evaluate (Cells : Managed_Cells;
+                      Item  : Object)
+                      return Object
+   is
+   begin
+      return SK.Evaluator.Evaluate (Cells, Item);
+   end Evaluate;
+
    -------------
    -- Get_Mem --
    -------------
@@ -181,6 +228,35 @@ package body SK.Cells is
       end if;
    end Get_Mem;
 
+   -------------------------------
+   -- Marshall_String_To_Object --
+   -------------------------------
+
+   function Marshall_String_To_Object
+     (Context : Managed_Cells;
+      Value   : String)
+      return Object
+   is
+   begin
+      Push (Context, Get_Symbol ("[]"));
+      for I in reverse Value'Range loop
+         Push (Context, To_Object (Integer'(Character'Pos (Value (I)))));
+         Push (Context, Get_Symbol (":"));
+         Apply (Context);
+         Apply (Context);
+      end loop;
+
+      Compile (Context);
+
+      declare
+         Result : Object;
+      begin
+         Pop (Context, Result);
+         return Result;
+      end;
+
+   end Marshall_String_To_Object;
+
    ---------
    -- Pop --
    ---------
@@ -189,6 +265,18 @@ package body SK.Cells is
       SP : constant Object := Stack_Top_Cell (Cells);
    begin
       SK.Memory.Set_Register (Cells.Mem.all, Stack_Register, Cdr (Cells, SP));
+   end Pop;
+
+   ---------
+   -- Pop --
+   ---------
+
+   procedure Pop (Cells : Managed_Cells;
+                  Item  : out Object)
+   is
+   begin
+      Item := Top (Cells);
+      Pop (Cells);
    end Pop;
 
    ----------
@@ -304,5 +392,14 @@ package body SK.Cells is
    begin
       return SK.Memory.Get_Register (Cells.Mem.all, Stack_Register);
    end Stack_Top_Cell;
+
+   ---------
+   -- Top --
+   ---------
+
+   function Top (Cells : Managed_Cells) return Object is
+   begin
+      return Car (Cells, Stack_Top_Cell (Cells));
+   end Top;
 
 end SK.Cells;

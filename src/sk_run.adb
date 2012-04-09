@@ -32,8 +32,9 @@ begin
    Test ("(\x.\y.#intPlus x y) 5 3");
    Test ("if true 0 1");
    Test ("eq? 0 0 1 2");
-   Test ("ifz (eq? 2 (#intPlus 1 1)) 2 3");
-   Test ("(Y (\f.\x.ifz x x (#intPlus x (f (#intMinus x 1))))) 10");
+   Test ("#pick-2 (eq? 2 (#intPlus 1 1)) 2 3");
+   Test ("(Y (\f.\x.#pick-2 (eq? x 0) "
+         & "(#intPlus x (f (#intMinus x 1))) x)) 10");
    Test ("(\x.#intPlus x x) (#intPlus 1 2)");
    Test ("(Y (\f.\x.x 0 (\h.\t.#intPlus 1 (f t)))) (cons 0 (cons 1 false))");
 

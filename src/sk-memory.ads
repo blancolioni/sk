@@ -1,4 +1,4 @@
-private package SK.Memory is
+package SK.Memory is
 
    type Memory_Type is private;
 

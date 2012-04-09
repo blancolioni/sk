@@ -9,6 +9,12 @@ package SK is
 
    type Combinator is (I, S, K, B, C, Sd, Bd, Cd);
 
+   type Object_Class is
+     (O_Integer,
+      O_Immediate,
+      O_Application,
+      O_Lambda);
+
    type Function_Id is private;
 
    type Type_Id is private;
@@ -46,6 +52,13 @@ package SK is
    function Sd return Object;
    function Bd return Object;
    function Cd return Object;
+
+   function Next_Argument return Object;
+   function Last_Argument return Object;
+
+   function Pick (Num_Choices : Positive) return Object;
+   function Is_Pick (Item : Object) return Boolean;
+   function Num_Picks (Item : Object) return Positive;
 
    function Null_Object return Object;
    function Empty_List_Object return Object;
@@ -86,7 +99,10 @@ private
    --     00001: function, high 24 bits of cell are index
    --     00010: 8 bit character constant, octet 1 contains code
    --     00011: wide character constant, to be defined
-   --     00100 .. 01110: to be defined
+   --     00100: next-argument
+   --     00101: last-argument
+   --     00110: pick-n; octet n contains choice count
+   --     00110 .. 01110: to be defined
    --     01111: extended constant in high 24 bits
    --     10000: nil
    --     10001: empty list
@@ -107,12 +123,6 @@ private
 
    Object_Type_Bits : constant := 2;
    Object_Type_Mask : constant := 2**Object_Type_Bits - 1;
-
-   type Object_Class is
-     (O_Integer,
-      O_Immediate,
-      O_Application,
-      O_Lambda);
 
    function Get_Bits (Class : Object_Class)
                       return Object;

@@ -60,4 +60,15 @@ package body SK.Machine.Assembler is
       SK.Stack.Push (Get_Cells (M), Get_Symbol (Value));
    end Push;
 
+   ----------
+   -- Push --
+   ----------
+
+   procedure Push (M     : SK_Machine;
+                   Item  : Object)
+   is
+   begin
+      SK.Stack.Push (Get_Cells (M), Item);
+   end Push;
+
 end SK.Machine.Assembler;
