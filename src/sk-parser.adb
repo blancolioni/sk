@@ -8,8 +8,6 @@ package body SK.Parser is
    Parse_Error : exception;
    Bad_Index   : Positive;
 
-   function Debug_Parser return Boolean;
-
    procedure Do_Parse (Cells  : in     SK.Cells.Managed_Cells;
                        S      : in     String;
                        Index  : in out Positive);
@@ -41,15 +39,6 @@ package body SK.Parser is
       raise Parse_Error with Message;
    end Bad_Parse;
 
-   ------------------
-   -- Debug_Parser --
-   ------------------
-
-   function Debug_Parser return Boolean is
-   begin
-      return False;
-   end Debug_Parser;
-
    --------------
    -- Do_Parse --
    --------------
@@ -60,13 +49,10 @@ package body SK.Parser is
    is
       First : Boolean := True;
       Item  : Object;
-      Start_Index, Finish_Index : Positive;
    begin
       loop
          Skip_Spaces (S, Index);
          exit when Index > S'Last or else S (Index) = ')';
-
-         Start_Index := Index;
 
          case S (Index) is
             when '(' =>
@@ -106,13 +92,6 @@ package body SK.Parser is
                SK.Stack.Push (Cells, Item);
          end case;
 
-         Finish_Index := Index - 1;
-
---           Ada.Text_IO.Put_Line ("Parse: [" &
---                                 S (Start_Index .. Finish_Index) &
---                                 "] => " &
---                                 SK.Images.Image
---                                   (Cells, SK.Stack.Top (Cells)));
          if First then
             First  := False;
 
