@@ -6,6 +6,7 @@ with SK.Stack;
 package body SK.Compiler is
 
    Debug_Compiler       : constant Boolean := False;
+   Debug_Linker         : constant Boolean := False;
    Debug_Optimisation   : constant Boolean := False;
 
    Use_Dash_Combinators : constant Boolean := False;
@@ -375,6 +376,13 @@ package body SK.Compiler is
       Changed : Boolean := False;
 
    begin
+
+      if Debug_Compiler then
+         Ada.Text_IO.Put_Line ("Compile: " &
+                                 SK.Images.Image
+                                 (Cells, Item));
+      end if;
+
       Compile (Item);
 
       if False then
@@ -384,7 +392,7 @@ package body SK.Compiler is
          end loop;
       end if;
 
-      if Debug_Optimisation then
+      if Debug_Compiler then
          Ada.Text_IO.Put_Line ("Result: " &
                                  SK.Images.Image
                                  (Cells, SK.Stack.Top (Cells)));
@@ -417,7 +425,7 @@ package body SK.Compiler is
 
             if not SK.Environments.Is_Linked (Env, Item) then
 
-               if Debug_Compiler then
+               if Debug_Linker then
                   Ada.Text_IO.Put_Line ("Linking: " &
                                         SK.Images.Image (Cells, Item) &
                                         " = " &
@@ -438,7 +446,7 @@ package body SK.Compiler is
 
          else
 
-            if Debug_Compiler then
+            if Debug_Linker then
                Ada.Text_IO.Put_Line ("Linking: " &
                                      SK.Images.Image (Cells, Item));
             end if;
@@ -461,11 +469,15 @@ package body SK.Compiler is
       end Do_Link;
 
    begin
-      if Debug_Compiler then
+      if Debug_Compiler or else Debug_Linker then
          Ada.Text_IO.Put_Line ("Linking: [" & Hex_Image (Item) & "] " &
                                SK.Images.Image (Cells, Item));
       end if;
       Do_Link (Item);
+      if Debug_Compiler or else Debug_Linker then
+         Ada.Text_IO.Put_Line ("Link result: [" & Hex_Image (Item) & "] " &
+                               SK.Images.Image (Cells, Item));
+      end if;
       return SK.Stack.Pop (Cells);
    end Link;
 
