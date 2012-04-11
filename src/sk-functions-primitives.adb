@@ -7,6 +7,11 @@ package body SK.Functions.Primitives is
       Args  : Array_Of_Objects)
       return Object;
 
+   function Evaluate_Neq
+     (Cells : SK.Cells.Managed_Cells;
+      Args  : Array_Of_Objects)
+      return Object;
+
    function Evaluate_Integer_Plus
      (Cells : SK.Cells.Managed_Cells;
       Args  : Array_Of_Objects)
@@ -70,6 +75,7 @@ package body SK.Functions.Primitives is
    procedure Add_Primitives is
    begin
       Bind_Function ("eq?", 2, Evaluate_Eq'Access);
+      Bind_Function ("neq?", 2, Evaluate_Neq'Access);
       Bind_Function ("#intPlus", 2, Evaluate_Integer_Plus'Access);
       Bind_Function ("#intMinus", 2,
                     Evaluate_Integer_Minus'Access);
@@ -197,6 +203,20 @@ package body SK.Functions.Primitives is
       return Args (1) + Args (2);
 
    end Evaluate_Integer_Plus;
+
+   ------------------
+   -- Evaluate_Neq --
+   ------------------
+
+   function Evaluate_Neq
+     (Cells : SK.Cells.Managed_Cells;
+      Args  : Array_Of_Objects)
+      return Object
+   is
+      pragma Unreferenced (Cells);
+   begin
+      return To_Object (Args (1) /= Args (2));
+   end Evaluate_Neq;
 
    -----------------------------
    -- Evaluate_Object_Compare --
