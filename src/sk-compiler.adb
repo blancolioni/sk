@@ -398,6 +398,14 @@ package body SK.Compiler is
                                  (Cells, SK.Stack.Top (Cells)));
       end if;
       return SK.Stack.Pop (Cells);
+
+   exception
+      when Evaluation_Error =>
+         Ada.Text_IO.Put_Line (Ada.Text_IO.Standard_Error,
+                               "error while compiling "
+                               & SK.Images.Image (Cells, Item));
+         raise;
+
    end Compile;
 
    ----------
@@ -466,6 +474,14 @@ package body SK.Compiler is
             end;
 
          end if;
+
+      exception
+         when Evaluation_Error =>
+            Ada.Text_IO.Put_Line (Ada.Text_IO.Standard_Error,
+                                  "link error at "
+                                  & SK.Images.Image (Cells, Item));
+            raise;
+
       end Do_Link;
 
    begin
@@ -479,6 +495,7 @@ package body SK.Compiler is
                                SK.Images.Image (Cells, Item));
       end if;
       return SK.Stack.Pop (Cells);
+
    end Link;
 
 end SK.Compiler;

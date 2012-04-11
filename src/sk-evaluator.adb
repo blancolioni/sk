@@ -211,6 +211,12 @@ package body SK.Evaluator is
          return Result;
       end;
 
+   exception
+      when Evaluation_Error =>
+         Ada.Text_IO.Put_Line (Ada.Text_IO.Standard_Error,
+                               "error while evaluating "
+                               & SK.Images.Image (Cells, Item));
+         raise;
    end Eval_App;
 
    --------------
