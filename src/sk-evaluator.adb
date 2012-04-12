@@ -183,11 +183,6 @@ package body SK.Evaluator is
                      begin
                         SK.Stack.Pop (Cells, Args);
                         if Debug_Eval then
-                           for I in Args'Range loop
-                              Ada.Text_IO.Put_Line
-                                (" choice" & Integer'Image (I - 1) & ": "
-                                 & SK.Images.Image (Cells, Args (I)));
-                           end loop;
                            Ada.Text_IO.Put_Line ("choosing:" &
                                                  Pick'Img);
                         end if;
