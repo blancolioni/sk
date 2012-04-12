@@ -5,7 +5,7 @@ package SK.Cells is
    type Managed_Cells is private;
 
    function Create_Managed_Cells
-     (M, R : SK.Memory.Memory_Type)
+     (M : SK.Memory.Memory_Type)
      return Managed_Cells;
 
    function Root_Cell (Cells : Managed_Cells) return Object;
@@ -64,8 +64,6 @@ private
    type Managed_Cells is
       record
          Mem         : Memory_Access;
-         Rom         : Memory_Access;
-         Next_Static : SK.Memory.Cell_Address;
       end record;
 
 end SK.Cells;

@@ -84,4 +84,9 @@ private
          Extensible   : Boolean;
       end record;
 
+   pragma Inline (Car);
+   pragma Inline (Cdr);
+   pragma Inline (To_Cell_Address);
+   pragma Inline (Get_Register);
+
 end SK.Memory;

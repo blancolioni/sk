@@ -37,6 +37,9 @@ package body SK.Memory is
       function To_Space (Item : Object) return Boolean;
       function From_Space (Item : Object) return Boolean;
 
+      pragma Inline (Car);
+      pragma Inline (Cdr);
+
       ---------
       -- Car --
       ---------
