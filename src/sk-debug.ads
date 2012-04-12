@@ -3,7 +3,7 @@ package SK.Debug is
    type Debug_Class is (GC, GC_Details, Eval, Laziness, Combinators,
                         Abstraction, Optimisation, Functions, Definitions,
                         Compaction, Pattern_Matching, Images, Parser,
-                        Memory, Stacks);
+                        Memory, Stacks, Compiler, Linker);
 
    procedure Enable (Class : Debug_Class);
    procedure Enable (Classes : String);

@@ -1,15 +1,16 @@
 with Ada.Text_IO;
 
+with SK.Debug;
 with SK.Images;
 with SK.Stack;
 
 package body SK.Compiler is
 
-   Debug_Compiler       : constant Boolean := False;
-   Debug_Linker         : constant Boolean := False;
-   Debug_Optimisation   : constant Boolean := False;
-
    Use_Dash_Combinators : constant Boolean := False;
+
+   function Debug_Compiler return Boolean;
+   function Debug_Linker return Boolean;
+   function Debug_Optimisation return Boolean;
 
    -------------
    -- Compile --
@@ -407,6 +408,33 @@ package body SK.Compiler is
          raise;
 
    end Compile;
+
+   --------------------
+   -- Debug_Compiler --
+   --------------------
+
+   function Debug_Compiler return Boolean is
+   begin
+      return SK.Debug.Enabled (SK.Debug.Compiler);
+   end Debug_Compiler;
+
+   ------------------
+   -- Debug_Linker --
+   ------------------
+
+   function Debug_Linker return Boolean is
+   begin
+      return SK.Debug.Enabled (SK.Debug.Linker);
+   end Debug_Linker;
+
+   ------------------------
+   -- Debug_Optimisation --
+   ------------------------
+
+   function Debug_Optimisation return Boolean is
+   begin
+      return SK.Debug.Enabled (SK.Debug.Optimisation);
+   end Debug_Optimisation;
 
    ----------
    -- Link --
