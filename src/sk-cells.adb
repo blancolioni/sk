@@ -1,9 +1,6 @@
-with Ada.Text_IO;
-
 with SK.Compiler;
 with SK.Environments;
 with SK.Evaluator;
-with SK.Images;
 
 package body SK.Cells is
 
@@ -13,29 +10,6 @@ package body SK.Cells is
    Count_Register : constant SK.Memory.Register := 3;
 
    First_User_Register : constant Natural := 4;
-
---     Current_Cells : Managed_Cells;
-
---     procedure Report_GC;
-
-   function Can_Have_Child
-     (Cells         : Managed_Cells;
-      Parent, Child : Object)
-      return Boolean;
-   --  Return True if the parent object is allowed Child as its
-   --  car or cdr.
-   --  For example, a ROM object can't have children in RAM.
-
-
-   function Get_Mem (Cells : Managed_Cells;
-                     Item  : Object)
-                    return Memory_Access;
-
-   function Ram_Object (Cells : Managed_Cells;
-                        X     : Object)
-                        return Object;
-   --  If X is already in RAM, then return it.  Otherwise, make a RAM
-   --  copy of X, and return that.
 
    --------------
    -- Allocate --
@@ -91,41 +65,6 @@ package body SK.Cells is
       Push (Cells, Result);
    end Apply;
 
-   --------------------
-   -- Can_Have_Child --
-   --------------------
-
-   function Can_Have_Child
-     (Cells         : Managed_Cells;
-      Parent, Child : Object)
-      return Boolean
-   is
-   begin
-      if not Is_Application (Parent)
-        and then not Is_Lambda (Parent)
-      then
-         return False;
-      end if;
-      if not Is_Application (Child)
-        and then not Is_Lambda (Child)
-      then
-         return True;
-      end if;
-
-      if Get_Mem (Cells, Parent) = Cells.Rom
-        and then Get_Mem (Cells, Child) = Cells.Mem
-      then
-         Ada.Text_IO.Put_Line ("Bad parent/child "
-                               & Hex_Image (Parent) & " "
-                               & Hex_Image (Child));
-         Ada.Text_IO.Put_Line ("Child = " & SK.Images.Image (Cells, Child));
-         return False;
-      end if;
-
-      return True;
-
-   end Can_Have_Child;
-
    ---------
    -- Car --
    ---------
@@ -136,7 +75,7 @@ package body SK.Cells is
       return Object
    is
    begin
-      return SK.Memory.Car (Get_Mem (Cells, Item).all,
+      return SK.Memory.Car (Cells.Mem.all,
                             SK.Memory.To_Cell_Address (Item));
    end Car;
 
@@ -150,7 +89,7 @@ package body SK.Cells is
       return Object
    is
    begin
-      return SK.Memory.Cdr (Get_Mem (Cells, Item).all,
+      return SK.Memory.Cdr (Cells.Mem.all,
                             SK.Memory.To_Cell_Address (Item));
    end Cdr;
 
@@ -174,7 +113,7 @@ package body SK.Cells is
    --------------------------
 
    function Create_Managed_Cells
-     (M, R : SK.Memory.Memory_Type)
+     (M : SK.Memory.Memory_Type)
       return Managed_Cells
    is
       Result : Managed_Cells;
@@ -183,8 +122,6 @@ package body SK.Cells is
       X, Y   : Object := 0;
    begin
       Result.Mem := new SK.Memory.Memory_Type'(M);
-      Result.Rom := new SK.Memory.Memory_Type'(R);
-      Result.Next_Static := 0;
       SK.Memory.Allocate (Result.Mem.all,
                           Get_Bits (O_Application), X, Y, Root);
       SK.Memory.Set_Register (Result.Mem.all, Root_Register, Root);
@@ -209,24 +146,6 @@ package body SK.Cells is
    begin
       return SK.Evaluator.Evaluate (Cells, Item);
    end Evaluate;
-
-   -------------
-   -- Get_Mem --
-   -------------
-
-   function Get_Mem (Cells : Managed_Cells;
-                     Item  : Object)
-                    return Memory_Access
-   is
-   begin
-      if SK.Memory.In_Range (Cells.Mem.all, Item) then
-         return Cells.Mem;
-      elsif SK.Memory.In_Range (Cells.Rom.all, Item) then
-         return Cells.Rom;
-      else
-         raise Constraint_Error with "bad address: " & Hex_Image (Item);
-      end if;
-   end Get_Mem;
 
    -------------------------------
    -- Marshall_String_To_Object --
@@ -288,62 +207,13 @@ package body SK.Cells is
       Item  : in Object)
    is
       SP     : Object := Stack_Top_Cell (Cells);
-      X      : Object := Ram_Object (Cells, Item);
+      X      : Object := Item;
       New_SP : Object;
    begin
       SK.Memory.Allocate (Cells.Mem.all,
                           Get_Bits (O_Application), X, SP, New_SP);
       SK.Memory.Set_Register (Cells.Mem.all, Stack_Register, New_SP);
    end Push;
-
-   ----------------
-   -- Ram_Object --
-   ----------------
-
-   function Ram_Object (Cells : Managed_Cells;
-                        X     : Object)
-                        return Object
-   is
-   begin
-      if not Is_Application (X) then
-         return X;
-      elsif Get_Mem (Cells, X) /= Cells.Mem then
-         declare
-            Y   : Object;
-            H   : Object := Car (Cells, X);
-            T   : Object := Cdr (Cells, X);
-         begin
-            SK.Memory.Allocate (Cells.Mem.all,
-                                Get_Bits (O_Application),
-                                H, T, Y);
-            Ada.Text_IO.Put_Line
-              (Hex_Image (X) & " --> " & Hex_Image (Y));
-            Ada.Text_IO.Put_Line (SK.Images.Image (Cells, Y));
-            return Y;
-         end;
-      else
-         return X;
-      end if;
-   end Ram_Object;
-
-   ---------------
-   -- Report_GC --
-   ---------------
-
---     procedure Report_GC is
---        It : Object := SK.Memory.Get_Register (Current_Cells.Mem.all,
---                                               Stack_Register);
---     begin
---        Ada.Text_IO.Put_Line ("Got GC event");
---        while Is_Application (It) loop
---           Ada.Text_IO.Put_Line ("Stack: " &
---                                   SK.Images.Low_Level_Image
---                                   (Current_Cells,
---                                    Car (Current_Cells, It)));
---           It := Cdr (Current_Cells, It);
---        end loop;
---
---     end Report_GC;
 
    ---------------
    -- Root_Cell --
@@ -364,8 +234,7 @@ package body SK.Cells is
       To    : in Object)
    is
    begin
-      pragma Assert (Can_Have_Child (Cells, Item, To));
-      SK.Memory.Set_Car (Get_Mem (Cells, Item).all,
+      SK.Memory.Set_Car (Cells.Mem.all,
                          SK.Memory.To_Cell_Address (Item), To);
    end Set_Car;
 
@@ -379,8 +248,7 @@ package body SK.Cells is
       To    : in Object)
    is
    begin
-      pragma Assert (Can_Have_Child (Cells, Item, To));
-      SK.Memory.Set_Cdr (Get_Mem (Cells, Item).all,
+      SK.Memory.Set_Cdr (Cells.Mem.all,
                          SK.Memory.To_Cell_Address (Item), To);
    end Set_Cdr;
 

@@ -138,10 +138,8 @@ package body SK.Machine is
                  SK.Memory.Create_Managed_Memory
                    (Cell_Count     => SK.Memory.Cell_Address (Size),
                     Base_Address   => 0);
-      Rom    : constant SK.Memory.Memory_Type :=
-        SK.Memory.Create_Extensible_Memory (SK.Memory.Cell_Address (Size));
       Result : constant SK_Machine := new SK_Machine_Record'
-        (Cells => SK.Cells.Create_Managed_Cells (Mem, Rom),
+        (Cells => SK.Cells.Create_Managed_Cells (Mem),
          Env   => SK.Environments.Top_Level_Environment,
          Start => 0);
    begin
