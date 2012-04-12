@@ -20,7 +20,7 @@ package body SK.Debug is
    ------------
 
    procedure Enable (Classes : String) is
-      Current : Natural := 1;
+      Current : Natural := Classes'First;
       Next    : Natural := 0;
    begin
       while Next <= Classes'Last loop
