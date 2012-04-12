@@ -1,7 +1,10 @@
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
+with SK.Debug;
+with SK.Debug_Class;
 with SK.Environments;
+with SK.Images;
 with SK.Stack;
 
 package body SK.Functions is
@@ -81,7 +84,7 @@ package body SK.Functions is
 
    function Debug_Functions return Boolean is
    begin
-      return False; --  SK.Debug.Enabled (SK.Debug_Class.Functions);
+      return SK.Debug.Enabled (SK.Debug.Functions);
    end Debug_Functions;
 
    --------------
@@ -103,15 +106,29 @@ package body SK.Functions is
 
          declare
             Local_Args : Array_Of_Objects (1 .. F.Arg_Count);
+            Top        : Object;
          begin
             SK.Stack.Pop (Cells, Local_Args);
+            Top := Local_Args (Local_Args'Last);
+
+            if Debug_Functions then
+               Ada.Text_IO.Put_Line ("  top = "
+                                     & SK.Images.Image (Cells, Top));
+            end if;
 
             for I in Local_Args'Range loop
                Local_Args (I) := SK.Cells.Cdr (Cells, Local_Args (I));
             end loop;
 
             Result := F.Eval (Cells, Local_Args);
-
+            if True then
+               SK.Cells.Set_Car (Cells, Top, I);
+               SK.Cells.Set_Cdr (Cells, Top, Result);
+               if Debug_Functions then
+                  Ada.Text_IO.Put_Line ("  top = "
+                                        & SK.Images.Image (Cells, Top));
+               end if;
+            end if;
             Changed := True;
 
             if Debug_Functions then
