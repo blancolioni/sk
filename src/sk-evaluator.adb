@@ -40,9 +40,9 @@ package body SK.Evaluator is
    begin
       pragma Assert (Is_Application (Item) or Is_Function (Item));
 
---        if Debug_Eval then
---           Ada.Text_IO.Put_Line ("Eval: " & SK.Images.Image (Cells, Item));
---        end if;
+      if Debug_Eval then
+         Ada.Text_IO.Put_Line ("Eval_App");
+      end if;
 
       while Changed loop
 
@@ -101,6 +101,9 @@ package body SK.Evaluator is
                Args      : Array_Of_Objects (1 .. Arg_Count);
             begin
                if not SK.Stack.Minimum_Count (Cells, Arg_Count) then
+                  if Debug_Eval then
+                     Ada.Text_IO.Put_Line ("  partially applied");
+                  end if;
                   Changed := False;
                elsif Arg_Count = 0 then
                   SK.Functions.Evaluate (Id, Cells, It, Changed);
@@ -110,6 +113,16 @@ package body SK.Evaluator is
                   SK.Stack.Push (Cells, Last_Argument);
 
                   for I in 1 .. Arg_Count loop
+                     if Debug_Eval then
+                        Ada.Text_IO.Put_Line
+                          ("  arg" & I'Img
+                           & ": "
+                           & SK.Images.Image
+                             (Cells,
+                              SK.Cells.Cdr
+                               (Cells, Args (I))));
+                     end if;
+
                      SK.Stack.Push (Cells, Args (I));
                      SK.Stack.Push (Cells, Next_Argument);
                      SK.Stack.Push (Cells, SK.Cells.Cdr (Cells, Args (I)));
@@ -129,7 +142,29 @@ package body SK.Evaluator is
          end if;
 
          if not Changed then
+
+            declare
+               Result : Object;
+            begin
+               Make_Tree (Cells, It, Result);
+               It := Result;
+               if Debug_Eval then
+                  Ada.Text_IO.Put_Line
+                    ("result: " & SK.Images.Image (Cells, It));
+               end if;
+            end;
+
+            if Debug_Eval then
+               Ada.Text_IO.Put_Line
+                 ("no change: stack top = "
+                  & SK.Images.Image (Cells, SK.Stack.Top (Cells)));
+            end if;
+
             if SK.Stack.Top (Cells) = Next_Argument then
+               if Debug_Eval then
+                  Ada.Text_IO.Put_Line ("Next argument");
+               end if;
+
                declare
                   T : Object;
                begin
@@ -199,12 +234,7 @@ package body SK.Evaluator is
          Ada.Text_IO.Put_Line ("Done");
       end if;
 
-      declare
-         Result : Object;
-      begin
-         Make_Tree (Cells, It, Result);
-         return Result;
-      end;
+      return It;
 
    exception
       when Evaluation_Error =>
@@ -262,11 +292,20 @@ package body SK.Evaluator is
       Nodes : constant Array_Of_Objects := SK.Stack.Pop_All (Cells);
       T     : Object;
    begin
+      if Debug_Eval then
+         Ada.Text_IO.Put_Line ("building result: start = "
+                               & SK.Images.Image (Cells, Tail));
+      end if;
+
       Result := Tail;
       for I in reverse Nodes'Range loop
          T := Nodes (I);
          SK.Cells.Set_Car (Cells, T, Result);
          Result := T;
+         if Debug_Eval then
+            Ada.Text_IO.Put_Line ("   item" & I'Img & ": "
+                                  & SK.Images.Image (Cells, Result));
+         end if;
       end loop;
    end Make_Tree;
 
