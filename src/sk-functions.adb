@@ -124,6 +124,12 @@ package body SK.Functions is
             end loop;
 
             Result := F.Eval (Cells, Local_Args);
+
+            if Debug_Functions then
+               Ada.Text_IO.Put_Line ("  result = "
+                                     & SK.Images.Image (Cells, Result));
+            end if;
+
             if F.Arg_Count > 0 then
                SK.Cells.Set_Car (Cells, Top, I);
                SK.Cells.Set_Cdr (Cells, Top, Result);
