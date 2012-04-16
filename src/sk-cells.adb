@@ -1,4 +1,7 @@
+with Ada.Text_IO;
+
 with SK.Compiler;
+with SK.Debug;
 with SK.Environments;
 with SK.Evaluator;
 
@@ -196,6 +199,9 @@ package body SK.Cells is
    begin
       Item := Top (Cells);
       Pop (Cells);
+      if SK.Debug.Enabled (SK.Debug.Stacks) then
+         Ada.Text_IO.Put_Line ("Pop: " & Hex_Image (Item));
+      end if;
    end Pop;
 
    ----------
@@ -213,6 +219,9 @@ package body SK.Cells is
       SK.Memory.Allocate (Cells.Mem.all,
                           Get_Bits (O_Application), X, SP, New_SP);
       SK.Memory.Set_Register (Cells.Mem.all, Stack_Register, New_SP);
+      if SK.Debug.Enabled (SK.Debug.Stacks) then
+         Ada.Text_IO.Put_Line ("Push: " & Hex_Image (Item));
+      end if;
    end Push;
 
    ---------------
