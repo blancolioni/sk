@@ -18,7 +18,9 @@ package body SK.Stack is
       It     : Object := SK.Cells.Stack_Top_Cell (Cells);
       Result : Natural := 0;
    begin
-      while SK.Cells.Car (Cells, It) /= Boundary_Object loop
+      while SK.Cells.Car (Cells, It) /= Boundary_Object
+        and then SK.Cells.Car (Cells, It) /= Next_Argument
+      loop
          if not Is_Application (It) then
             raise Constraint_Error with "ran out of stack";
          end if;
@@ -83,7 +85,9 @@ package body SK.Stack is
       It    : Object := SK.Cells.Stack_Top_Cell (Cells);
    begin
       for I in 1 .. Minimum loop
-         if SK.Cells.Car (Cells, It) = Boundary_Object then
+         if SK.Cells.Car (Cells, It) = Boundary_Object
+           or else SK.Cells.Car (Cells, It) = Next_Argument
+         then
             return False;
          end if;
          It := SK.Cells.Cdr (Cells, It);
@@ -100,12 +104,11 @@ package body SK.Stack is
       Item  :    out Object)
    is
    begin
-      Item := Top (Cells);
       if Top (Cells) = Boundary_Object then
          raise Constraint_Error with "crossed stack boundary";
       end if;
 
-      SK.Cells.Pop (Cells);
+      SK.Cells.Pop (Cells, Item);
    end Pop;
 
    ---------
