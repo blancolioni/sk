@@ -401,6 +401,7 @@ package body SK.Memory is
    ---------------------
 
    function To_Cell_Address (Item : Object) return Cell_Address is
+      pragma Assert (not Is_Atomic (Item));
    begin
       return Cell_Address (Item / (2 ** Object_Type_Bits));
    end To_Cell_Address;
