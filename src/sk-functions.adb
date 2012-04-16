@@ -109,7 +109,10 @@ package body SK.Functions is
             Top        : Object;
          begin
             SK.Stack.Pop (Cells, Local_Args);
-            Top := Local_Args (Local_Args'Last);
+
+            if F.Arg_Count > 0 then
+               Top := Local_Args (Local_Args'Last);
+            end if;
 
             if Debug_Functions then
                Ada.Text_IO.Put_Line ("  top = "
@@ -121,7 +124,7 @@ package body SK.Functions is
             end loop;
 
             Result := F.Eval (Cells, Local_Args);
-            if True then
+            if F.Arg_Count > 0 then
                SK.Cells.Set_Car (Cells, Top, I);
                SK.Cells.Set_Cdr (Cells, Top, Result);
                if Debug_Functions then
