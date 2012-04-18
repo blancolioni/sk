@@ -57,6 +57,8 @@ package SK.Cells is
       Value   : String)
       return Object;
 
+   procedure Report_Memory (Cells : Managed_Cells);
+
 private
 
    type Memory_Access is access SK.Memory.Memory_Type;

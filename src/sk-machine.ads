@@ -113,6 +113,8 @@ package SK.Machine is
                             Item : Object)
                             return String;
 
+   procedure Report_Memory (Machine : SK_Machine);
+
 private
 
    type SK_Machine_Record;

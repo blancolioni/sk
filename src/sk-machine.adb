@@ -403,6 +403,15 @@ package body SK.Machine is
       Push (Context, Get_Symbol (Reference));
    end Push;
 
+   -------------------
+   -- Report_Memory --
+   -------------------
+
+   procedure Report_Memory (Machine : SK_Machine) is
+   begin
+      SK.Cells.Report_Memory (Machine.Cells);
+   end Report_Memory;
+
    ----------
    -- Show --
    ----------
