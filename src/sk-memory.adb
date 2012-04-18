@@ -349,6 +349,20 @@ package body SK.Memory is
       return Addr in Mem.Cells.all'Range;
    end In_Range;
 
+   -------------------
+   -- Report_Memory --
+   -------------------
+
+   procedure Report_Memory (M : Memory_Type) is
+   begin
+      Ada.Text_IO.Put_Line ("total cells     : "
+                            & Hex_Image (Object (M.Space_Size)));
+      Ada.Text_IO.Put_Line ("first free cell : "
+                            & Hex_Image (Object (M.Free - M.To_Space)));
+      Ada.Text_IO.Put_Line ("free cells:" &
+                            Cell_Address'Image (M.Top - M.Free));
+   end Report_Memory;
+
    -------------
    -- Set_Car --
    -------------

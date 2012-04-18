@@ -224,6 +224,15 @@ package body SK.Cells is
       end if;
    end Push;
 
+   -------------------
+   -- Report_Memory --
+   -------------------
+
+   procedure Report_Memory (Cells : Managed_Cells) is
+   begin
+      SK.Memory.Report_Memory (Cells.Mem.all);
+   end Report_Memory;
+
    ---------------
    -- Root_Cell --
    ---------------

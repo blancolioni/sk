@@ -62,6 +62,8 @@ package SK.Memory is
 
    procedure Set_GC_Callback (Callback : GC_Callback);
 
+   procedure Report_Memory (M : Memory_Type);
+
 private
 
    type Cell_Array is array (Cell_Address range <>) of Object_Pair;
