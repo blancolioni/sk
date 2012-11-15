@@ -57,7 +57,21 @@ package SK.Cells is
       Value   : String)
       return Object;
 
+   function Marshall_Array_To_List
+     (Context : Managed_Cells;
+      Value   : Array_Of_Objects)
+      return Object;
+
+   function Marshall_List_To_Array
+     (Cells : Managed_Cells;
+      Value : SK.Object)
+      return Array_Of_Objects;
+
    procedure Report_Memory (Cells : Managed_Cells);
+
+   function Image (Cells : Managed_Cells;
+                   Item  : Object)
+                   return String;
 
 private
 
