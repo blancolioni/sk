@@ -4,6 +4,7 @@ with SK.Compiler;
 with SK.Debug;
 with SK.Environments;
 with SK.Evaluator;
+with SK.Images;
 
 package body SK.Cells is
 
@@ -149,6 +150,81 @@ package body SK.Cells is
    begin
       return SK.Evaluator.Evaluate (Cells, Item);
    end Evaluate;
+
+   -----------
+   -- Image --
+   -----------
+
+   function Image (Cells : Managed_Cells;
+                   Item  : Object)
+                   return String
+   is
+   begin
+      return SK.Images.Image (Cells, Item);
+   end Image;
+
+   function Marshall_Array_To_List
+     (Context : Managed_Cells;
+      Value   : Array_Of_Objects)
+      return Object
+   is
+   begin
+      Push (Context, Get_Symbol ("[]"));
+      for I in reverse Value'Range loop
+         Push (Context, Value (I));
+         Push (Context, Get_Symbol (":"));
+         Apply (Context);
+         Apply (Context);
+      end loop;
+
+      Compile (Context);
+
+      declare
+         Result : Object;
+      begin
+         Pop (Context, Result);
+         return Result;
+      end;
+
+   end Marshall_Array_To_List;
+
+   ----------------------------
+   -- Marshall_List_To_Array --
+   ----------------------------
+
+   function Marshall_List_To_Array
+     (Cells   : Managed_Cells;
+      Value   : SK.Object)
+      return Array_Of_Objects
+   is
+      X      : SK.Object := Value;
+      Buffer : Array_Of_Objects (1 .. 200);
+      Count  : Natural := 0;
+   begin
+      for I in Buffer'Range loop
+         SK.Cells.Push (Cells, SK.C);
+         SK.Cells.Push (Cells, SK.Empty_List_Object);
+         SK.Cells.Push (Cells, X);
+         SK.Cells.Apply (Cells);
+         SK.Cells.Apply (Cells);
+         SK.Cells.Pop (Cells, X);
+
+         X := SK.Cells.Evaluate (Cells, X);
+         exit when X = SK.Empty_List_Object;
+
+         Count := Count + 1;
+         declare
+            Item  : SK.Object := SK.Cells.Cdr (Cells, X);
+         begin
+            Item := SK.Cells.Evaluate (Cells, Item);
+            Buffer (Count) := Item;
+            X := SK.Cells.Cdr (Cells, SK.Cells.Car (Cells, X));
+         end;
+      end loop;
+
+      return Buffer (1 .. Count);
+
+   end Marshall_List_To_Array;
 
    -------------------------------
    -- Marshall_String_To_Object --
