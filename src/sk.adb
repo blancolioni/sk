@@ -56,7 +56,6 @@ package body SK is
 
    function Make_Symbol (Id : Symbol_Id) return Object;
 
-
    --  Inline local subprograms come first
 
    -------
@@ -77,7 +76,7 @@ package body SK is
       return Make_Combinator (Bd);
    end Bd;
 
-  ---------------------
+   ---------------------
    -- Boundary_Object --
    ---------------------
 
@@ -529,7 +528,6 @@ package body SK is
       return Make_Combinator (Sd);
    end Sd;
 
-
    --------------
    -- Start_SK --
    --------------
@@ -545,7 +543,7 @@ package body SK is
 
    function To_Boolean (Item : Object) return Boolean is
    begin
-      return Item /= Null_Object and Item /= 0;
+      return Item /= Null_Object and then Item /= 0;
    end To_Boolean;
 
    ---------------
@@ -625,5 +623,3 @@ package body SK is
    end Undefined_Object;
 
 end SK;
-
-

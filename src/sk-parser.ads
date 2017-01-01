@@ -7,4 +7,3 @@ private package SK.Parser is
                           return Object;
 
 end SK.Parser;
-

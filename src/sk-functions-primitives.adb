@@ -126,7 +126,7 @@ package body SK.Functions.Primitives is
 
    end Evaluate_Integer_Div;
 
-  -----------------------------
+   -----------------------------
    -- Evaluate_Integer_Minus --
    ----------------------------
 

@@ -108,7 +108,7 @@ package body SK.Combinators is
                end if;
                return T;
             end if;
-          when Bd =>
+         when Bd =>
             if Minimum_Count (Cells, 3) then
                SK.Cells.Allocate (Cells, O_Application, Ts (1 .. 2));
                T0 := Ts (1);

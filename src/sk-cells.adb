@@ -37,13 +37,13 @@ package body SK.Cells is
                        Class  : in    Object_Class;
                        Result :    out Array_Of_Objects)
    is
-      T0, T1 : Object := Null_Object;
+      T0, T1, T2 : Object := Null_Object;
    begin
 --        Current_Cells := Cells;
       for I in Result'Range loop
-         SK.Memory.Allocate (Cells.Mem.all, Get_Bits (Class), T0, T0, T1);
-         SK.Memory.Set_Register (Cells.Mem.all, Temp_Register, T1);
-         T0 := T1;
+         SK.Memory.Allocate (Cells.Mem.all, Get_Bits (Class), T0, T1, T2);
+         SK.Memory.Set_Register (Cells.Mem.all, Temp_Register, T2);
+         T0 := T2;
       end loop;
       T0 := SK.Memory.Get_Register (Cells.Mem.all, Temp_Register);
       for I in Result'Range loop

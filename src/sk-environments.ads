@@ -8,7 +8,6 @@ private package SK.Environments is
                      Name     : String;
                      Defn     : Object);
 
-
    function Get_Definition (Env   : Environment;
                             Name  : String)
                            return Object;
@@ -18,7 +17,6 @@ private package SK.Environments is
                             return Object;
    --  Gets the definition referred to by Reference, which must
    --  be a Symbol
-
 
    procedure Replace_Definition (Env       : Environment;
                                  Reference : Object;

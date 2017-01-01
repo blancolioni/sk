@@ -4,5 +4,3 @@ private package SK.Symbols is
    function Get_Name (Id : Symbol_Id) return String;
 
 end SK.Symbols;
-
-

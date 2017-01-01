@@ -111,7 +111,6 @@ package body SK.Memory is
            M.To_Space .. M.To_Space + M.Space_Size - 1;
       end To_Space;
 
-
    begin
       if M.Free = M.Top then
          if M.Managed then
@@ -227,7 +226,7 @@ package body SK.Memory is
          X, Y   : Object;
          Result : Object;
       begin
-         if Is_Application (Item) or Is_Lambda (Item) then
+         if Is_Application (Item) or else Is_Lambda (Item) then
             if To_Cell_Address (Item) in From.Cells'Range then
                X := Car (From, To_Cell_Address (Item));
                Y := Cdr (From, To_Cell_Address (Item));
