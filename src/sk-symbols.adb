@@ -61,5 +61,3 @@ package body SK.Symbols is
    end Get_Symbol_Id;
 
 end SK.Symbols;
-
-

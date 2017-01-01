@@ -154,7 +154,6 @@ package body SK.Functions is
       end if;
    end Evaluate;
 
-
    -----------------------
    -- Get_Function_Name --
    -----------------------

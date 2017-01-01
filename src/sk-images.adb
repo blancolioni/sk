@@ -116,7 +116,7 @@ package body SK.Images is
               Image (Cells, Get_Right (Item), Format, New_Found) & ")";
          end if;
       else
-         if Format = Pair or Format = Cell then
+         if Format = Pair or else Format = Cell then
             Result := +Hex_Image (Item) & ":";
          end if;
          if Is_Combinator (Item) then

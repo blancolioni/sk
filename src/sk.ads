@@ -153,5 +153,4 @@ private
    pragma Inline (Is_Application);
    pragma Inline (Get_Object_Class);
 
-
 end SK;

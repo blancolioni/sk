@@ -149,7 +149,6 @@ package body SK.Environments is
          raise Evaluation_Error;
    end Get_Definition;
 
-
    --------------
    -- Get_Name --
    --------------
@@ -235,7 +234,6 @@ package body SK.Environments is
       end if;
       return Top_Level_Env;
    end Top_Level_Environment;
-
 
    procedure Update_All (Updater : not null access
                            function (Defn : Object)

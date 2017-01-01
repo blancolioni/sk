@@ -38,7 +38,7 @@ package body SK.Evaluator is
       It             : Object := Item;
       Changed        : Boolean := True;
    begin
-      pragma Assert (Is_Application (Item) or Is_Function (Item));
+      pragma Assert (Is_Application (Item) or else Is_Function (Item));
 
       if Debug_Eval then
          Ada.Text_IO.Put_Line ("Eval_App");
@@ -255,7 +255,7 @@ package body SK.Evaluator is
       if Is_Symbol (Item) then
          raise Program_Error with "unexpected symbol object: " &
          SK.Images.Image (Cells, Item);
-      elsif not Is_Application (Item) and not Is_Function (Item) then
+      elsif not Is_Application (Item) and then not Is_Function (Item) then
          null;
       elsif Is_Application (Item) and then SK.Cells.Car (Cells, Item) = I then
          Item := Evaluate (Cells, SK.Cells.Cdr (Cells, Item));
@@ -308,6 +308,5 @@ package body SK.Evaluator is
          end if;
       end loop;
    end Make_Tree;
-
 
 end SK.Evaluator;

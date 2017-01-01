@@ -1,3 +1,4 @@
+with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 
 with SK.Compiler;
@@ -43,7 +44,7 @@ package body SK.Machine is
    -- Apply --
    -----------
 
-   procedure Apply
+   overriding procedure Apply
      (Context : Function_Call_Context)
    is
       Cells  : constant SK.Cells.Managed_Cells :=
@@ -72,6 +73,8 @@ package body SK.Machine is
 
       SK.Stack.Drop (M.Cells, 2);
 
+      Ada.Text_IO.Put_Line
+        (Name & " = " & Show (M, E));
       SK.Environments.Define (M.Env, Name, E);
    end Bind;
 
@@ -79,7 +82,7 @@ package body SK.Machine is
    -- Car --
    ---------
 
-   function Car (Context : Function_Call_Context;
+   overriding function Car (Context : Function_Call_Context;
                  Value   : Object)
                  return Object
    is
@@ -91,7 +94,7 @@ package body SK.Machine is
    -- Cdr --
    ---------
 
-   function Cdr (Context : Function_Call_Context;
+   overriding function Cdr (Context : Function_Call_Context;
                  Value   : Object)
                  return Object
    is
@@ -116,7 +119,7 @@ package body SK.Machine is
    -- Compile --
    -------------
 
-   procedure Compile (Context : Function_Call_Context) is
+   overriding procedure Compile (Context : Function_Call_Context) is
       Cells  : constant SK.Cells.Managed_Cells :=
                  SK.Cells.Managed_Cells (Context);
       E      : Object;
@@ -145,11 +148,11 @@ package body SK.Machine is
    begin
       SK.Functions.Primitives.Add_Primitives;
 
-      Define_Primitive (Result, "true", "\x.\y.y");
-      Define_Primitive (Result, "false", "\x.\y.x");
-      Define_Primitive (Result, "if", "\p.\f.\t.p f t");
+--        Define_Primitive (Result, "true", "\x.\y.y");
+--        Define_Primitive (Result, "false", "\x.\y.x");
+--        Define_Primitive (Result, "if", "\p.\f.\t.p f t");
       Define_Primitive (Result, "Y", "\f.(\x.f (x x)) (\x.f (x x))");
-      Define_Primitive (Result, "cons", "\h.\t.\x.\y.y h t");
+--        Define_Primitive (Result, "cons", "\h.\t.\x.\y.y h t");
       Define_Primitive (Result, "Y'",
                         "S (K (S I I)) (S (S (K S) K) (K (S I I)))");
       return Result;
@@ -210,7 +213,7 @@ package body SK.Machine is
    -- Evaluate --
    --------------
 
-   function Evaluate (Context : Function_Call_Context;
+   overriding function Evaluate (Context : Function_Call_Context;
                       Value   : Object)
                       return Object
    is
@@ -309,7 +312,7 @@ package body SK.Machine is
    -- Marshall_String_To_Object --
    -------------------------------
 
-   function Marshall_String_To_Object
+   overriding function Marshall_String_To_Object
      (Context : Function_Call_Context;
       Value   : String)
       return Object
@@ -351,7 +354,7 @@ package body SK.Machine is
    -- Pop --
    ---------
 
-   procedure Pop (Context : Function_Call_Context;
+   overriding procedure Pop (Context : Function_Call_Context;
                   Value   : out Object)
    is
    begin
@@ -374,7 +377,7 @@ package body SK.Machine is
    -- Push --
    ----------
 
-   procedure Push (Context : Function_Call_Context;
+   overriding procedure Push (Context : Function_Call_Context;
                    Value   : Object)
    is
    begin

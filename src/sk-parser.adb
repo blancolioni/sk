@@ -57,8 +57,8 @@ package body SK.Parser is
          case S (Index) is
             when '(' =>
                Index := Index + 1;
-              Do_Parse (Cells, S, Index);
-              Expect (S, Index, ')');
+               Do_Parse (Cells, S, Index);
+               Expect (S, Index, ')');
             when '\' =>
                Index := Index + 1;
                declare
@@ -183,8 +183,8 @@ package body SK.Parser is
 
       function Symbol_Character (Ch : Character) return Boolean is
       begin
-         return Ch /= ' ' and Ch /= '(' and Ch /= ')' and
-           (not Simple or Ch /= '.');
+         return Ch /= ' ' and then Ch /= '(' and then Ch /= ')' and then
+           (not Simple or else Ch /= '.');
       end Symbol_Character;
 
    begin
