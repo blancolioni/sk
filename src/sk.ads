@@ -73,6 +73,9 @@ package SK is
    function To_Object (Ch : Character) return Object;
    function To_Object (Item : System.Address) return Object;
 
+   function Initial_World return Object;
+   function Next_World (Current_World : Object) return Object;
+
    function Max_Integer return Integer;
    function Min_Integer return Integer;
 
@@ -102,7 +105,8 @@ private
    --     00100: next-argument
    --     00101: last-argument
    --     00110: pick-n; octet n contains choice count
-   --     00110 .. 01110: to be defined
+   --     00111: world token
+   --     01000 .. 01110: to be defined
    --     01111: extended constant in high 24 bits
    --     10000: nil
    --     10001: empty list
@@ -135,6 +139,12 @@ private
    Object_Bits : constant := 32;
    type Object is mod 2**Object_Bits;
    for Object'Size use Object_Bits;
+
+   function Initial_World return Object
+   is (2#0001_1101#);
+
+   function Next_World (Current_World : Object) return Object
+   is (Current_World + 16#0010#);
 
    type Object_Pair is
       record
