@@ -317,15 +317,15 @@ package body SK.Functions.Primitives is
       return Object
    is
       pragma Unreferenced (Cells);
-      World       : constant Object := Args (1);
-      Char_Object : constant Object := Args (2);
+      World       : constant Object := Args (2);
+      Char_Object : constant Object := Args (1);
       Char_Val    : constant Integer := Get_Integer (Char_Object);
       Char        : constant Character := Character'Val (Char_Val);
    begin
 
       Ada.Text_IO.Put (Char);
 
-      return World + 8;
+      return Next_World (World);
 
    end Evaluate_Putchar;
 
