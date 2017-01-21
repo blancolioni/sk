@@ -133,20 +133,27 @@ package body SK.Environments is
                             Reference : Object)
                             return Object
    is
-      Result : Object;
-   begin
       pragma Assert (Is_Symbol (Reference));
-      Result := Env.Entry_List.Element
-        (Positive (Get_Symbol_Id (Reference))).Defn;
-      return Result;
-   exception
-      when Constraint_Error =>
-         Ada.Text_IO.Put_Line ("No definition for symbol reference: " &
-                               Hex_Image (Reference) &
-                               "(" &
-                               SK.Symbols.Get_Name
-                                 (Get_Symbol_Id (Reference)) & ")");
-         raise Evaluation_Error;
+      Symbol : constant Symbol_Id := Get_Symbol_Id (Reference);
+      Index  : constant Positive := Positive (Symbol);
+   begin
+      if Index <= Env.Entry_List.Last_Index then
+         declare
+            Item : constant Env_Entry :=
+                     Env.Entry_List.Element (Index);
+         begin
+            if Item /= null then
+               return Item.Defn;
+            end if;
+         end;
+      end if;
+
+      raise Evaluation_Error with
+        "No definition for symbol reference: " &
+        Hex_Image (Reference) &
+        "(" &
+        SK.Symbols.Get_Name
+        (Get_Symbol_Id (Reference)) & ")";
    end Get_Definition;
 
    --------------
