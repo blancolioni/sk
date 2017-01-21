@@ -56,9 +56,9 @@ package SK is
    function Next_Argument return Object;
    function Last_Argument return Object;
 
-   function Pick (Num_Choices : Positive) return Object;
-   function Is_Pick (Item : Object) return Boolean;
-   function Num_Picks (Item : Object) return Positive;
+   function Select_Object (Num_Choices : Positive) return Object;
+   function Is_Select (Item : Object) return Boolean;
+   function Select_Choice_Count (Item : Object) return Positive;
 
    function Null_Object return Object;
    function Empty_List_Object return Object;
@@ -159,8 +159,43 @@ private
 
    function Get_Symbol_Id (Item : Object) return Symbol_Id;
 
-   pragma Inline (Is_Immediate);
-   pragma Inline (Is_Application);
-   pragma Inline (Get_Object_Class);
+   Symbol_Bits     : constant := 2#00000001#;
+   Function_Bits   : constant := 2#00001001#;
+   Character_Bits  : constant := 2#00010001#;
+
+   Combinator_Base : constant := 2#11000001#;
+   Constant_Base   : constant := 2#10000001#;
+
+   Pick_Bits : constant := 2#0011001#;
+
+   type Constant_Object_Classification is
+     (Nil_Object,
+      Empty_List_Object,
+      Fail_Object,
+      Unbound_Object,
+      Dont_Care_Object,
+      Undefined_Object,
+      Garbage_Object,
+      Boundary_Object,
+      I_Object,
+      S_Object,
+      K_Object,
+      B_Object,
+      C_Object,
+      S_Dash_Object,
+      B_Dash_Object,
+      C_Dash_Object);
+
+   function Make_Combinator (Comb : Combinator) return Object
+   is (Combinator_Base + Combinator'Pos (Comb) * 8);
+
+   function I return Object is (Make_Combinator (I));
+   function K return Object is (Make_Combinator (K));
+   function S return Object is (Make_Combinator (S));
+   function B return Object is (Make_Combinator (B));
+   function C return Object is (Make_Combinator (C));
+   function Sd return Object is (Make_Combinator (Sd));
+   function Bd return Object is (Make_Combinator (Bd));
+   function Cd return Object is (Make_Combinator (Cd));
 
 end SK;

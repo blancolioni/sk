@@ -235,7 +235,7 @@ package body SK.Environments is
          for I in 2 .. 15 loop
             Define (Name   => "#pick" & Integer'Image (-I),
                     Env    => Top_Level_Env,
-                    Defn   => SK.Pick (I),
+                    Defn   => SK.Select_Object (I),
                     Unsafe => False);
          end loop;
       end if;
