@@ -1,4 +1,3 @@
-with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 
 with SK.Compiler;
@@ -73,8 +72,6 @@ package body SK.Machine is
 
       SK.Stack.Drop (M.Cells, 2);
 
-      Ada.Text_IO.Put_Line
-        (Name & " = " & Show (M, E));
       SK.Environments.Define (M.Env, Name, E);
    end Bind;
 
