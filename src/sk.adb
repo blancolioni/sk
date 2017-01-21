@@ -7,74 +7,16 @@ with SK.Symbols;
 
 package body SK is
 
-   Symbol_Bits     : constant := 2#00000001#;
-   Function_Bits   : constant := 2#00001001#;
-   Character_Bits  : constant := 2#00010001#;
-
-   Combinator_Base : constant := 2#11000001#;
-   Constant_Base   : constant := 2#10000001#;
-
-   Pick_Bits : constant := 2#0011001#;
-
-   type Constant_Object_Classification is
-     (Nil_Object,
-      Empty_List_Object,
-      Fail_Object,
-      Unbound_Object,
-      Dont_Care_Object,
-      Undefined_Object,
-      Garbage_Object,
-      Boundary_Object,
-      I_Object,
-      S_Object,
-      K_Object,
-      B_Object,
-      C_Object,
-      S_Dash_Object,
-      B_Dash_Object,
-      C_Dash_Object);
-
-   pragma Unreferenced (Garbage_Object);
-   pragma Unreferenced (I_Object);
-   pragma Unreferenced (S_Object);
-   pragma Unreferenced (K_Object);
-   pragma Unreferenced (B_Object);
-   pragma Unreferenced (C_Object);
-   pragma Unreferenced (S_Dash_Object);
-   pragma Unreferenced (B_Dash_Object);
-   pragma Unreferenced (C_Dash_Object);
-
    type Octet_Index is range 0 .. 3;
    function Get_Octet (From  : Object;
                        Index : Octet_Index)
                       return Object;
 
-   function Make_Combinator (Comb : Combinator) return Object;
    function Make_Constant (Const : Constant_Object_Classification)
                           return Object;
    pragma Inline (Make_Constant);
 
    function Make_Symbol (Id : Symbol_Id) return Object;
-
-   --  Inline local subprograms come first
-
-   -------
-   -- B --
-   -------
-
-   function B return Object is
-   begin
-      return Make_Combinator (B);
-   end B;
-
-   --------
-   -- Bd --
-   --------
-
-   function Bd return Object is
-   begin
-      return Make_Combinator (Bd);
-   end Bd;
 
    ---------------------
    -- Boundary_Object --
@@ -84,24 +26,6 @@ package body SK is
    begin
       return Make_Constant (Boundary_Object);
    end Boundary_Object;
-
-   -------
-   -- C --
-   -------
-
-   function C return Object is
-   begin
-      return Make_Combinator (C);
-   end C;
-
-   --------
-   -- Cd --
-   --------
-
-   function Cd return Object is
-   begin
-      return Make_Combinator (Cd);
-   end Cd;
 
    ----------------------
    -- Dont_Care_Object --
@@ -287,15 +211,6 @@ package body SK is
       return Result;
    end Hex_Image;
 
-   -------
-   -- I --
-   -------
-
-   function I return Object is
-   begin
-      return Make_Combinator (I);
-   end I;
-
    --------------------
    -- Is_Application --
    --------------------
@@ -393,11 +308,11 @@ package body SK is
    -- Is_Pick --
    -------------
 
-   function Is_Pick (Item : Object) return Boolean is
+   function Is_Select (Item : Object) return Boolean is
    begin
       return Item mod 256 = Pick_Bits
         and then Item / 256 mod 256 > 1;
-   end Is_Pick;
+   end Is_Select;
 
    ---------------
    -- Is_Symbol --
@@ -408,15 +323,6 @@ package body SK is
       return Get_Octet (Item, 0) = Symbol_Bits;
    end Is_Symbol;
 
-   -------
-   -- K --
-   -------
-
-   function K return Object is
-   begin
-      return Make_Combinator (K);
-   end K;
-
    -------------------
    -- Last_Argument --
    -------------------
@@ -425,15 +331,6 @@ package body SK is
    begin
       return 2#0010101#;
    end Last_Argument;
-
-   ---------------------
-   -- Make_Combinator --
-   ---------------------
-
-   function Make_Combinator (Comb : Combinator) return Object is
-   begin
-      return Combinator_Base + Combinator'Pos (Comb) * 8;
-   end Make_Combinator;
 
    -------------------
    -- Make_Constant --
@@ -495,38 +392,20 @@ package body SK is
    -- Num_Picks --
    ---------------
 
-   function Num_Picks (Item : Object) return Positive is
-      pragma Assert (Is_Pick (Item));
+   function Select_Choice_Count (Item : Object) return Positive is
+      pragma Assert (Is_Select (Item));
    begin
       return Positive (Item / 256);
-   end Num_Picks;
+   end Select_Choice_Count;
 
    ----------
    -- Pick --
    ----------
 
-   function Pick (Num_Choices : Positive) return Object is
+   function Select_Object (Num_Choices : Positive) return Object is
    begin
       return Object (Num_Choices) * 256 + Pick_Bits;
-   end Pick;
-
-   -------
-   -- S --
-   -------
-
-   function S return Object is
-   begin
-      return Make_Combinator (S);
-   end S;
-
-   --------
-   -- Sd --
-   --------
-
-   function Sd return Object is
-   begin
-      return Make_Combinator (Sd);
-   end Sd;
+   end Select_Object;
 
    --------------
    -- Start_SK --

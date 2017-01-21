@@ -78,8 +78,10 @@ package body SK.Evaluator is
                   Changed := True;
                end if;
             end;
-         elsif Is_Pick (It) then
-            if SK.Stack.Minimum_Count (Cells, Num_Picks (It) + 1) then
+         elsif Is_Select (It) then
+            if SK.Stack.Minimum_Count
+              (Cells, Select_Choice_Count (It) + 1)
+            then
                declare
                   New_It : constant Object :=
                              SK.Stack.Top (Cells);
@@ -178,7 +180,7 @@ package body SK.Evaluator is
 
                if It = Last_Argument then
                   SK.Stack.Pop (Cells, It);
-                  pragma Assert (Is_Function (It) or else Is_Pick (It));
+                  pragma Assert (Is_Function (It) or else Is_Select (It));
 
                   if Is_Function (It) then
                      declare
@@ -214,12 +216,12 @@ package body SK.Evaluator is
                                         Get_Integer
                                           (SK.Cells.Cdr (Cells, Pick_Object));
                         Args        : Array_Of_Objects
-                          (1 .. Num_Picks (It));
+                          (1 .. Select_Choice_Count (It));
                      begin
                         SK.Stack.Pop (Cells, Args);
                         if Debug_Eval then
                            Ada.Text_IO.Put_Line ("choosing:" &
-                                                 Pick'Img);
+                                                   Pick'Img);
                         end if;
                         It := SK.Cells.Cdr (Cells, Args (Pick + 1));
                         Changed := True;

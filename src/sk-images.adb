@@ -185,8 +185,9 @@ package body SK.Images is
             Result := Result & "[]";
          elsif Is_Null (Item) then
             Result := Result & "<>";
-         elsif Is_Pick (Item) then
-            Result := Result & "pick" & Integer'Image (-Num_Picks (Item));
+         elsif Is_Select (Item) then
+            Result := Result & "select"
+              & Integer'Image (-Select_Choice_Count (Item));
          elsif Item = Last_Argument then
             Result := Result & "<last-argument>";
          elsif Item = Next_Argument then
