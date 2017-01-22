@@ -75,6 +75,7 @@ package body SK.Functions.Primitives is
    procedure Add_Primitives is
    begin
       Bind_Function ("eq?", 2, Evaluate_Eq'Access);
+      Bind_Function ("#intEq", 2, Evaluate_Eq'Access);
       Bind_Function ("neq?", 2, Evaluate_Neq'Access);
       Bind_Function ("#intPlus", 2, Evaluate_Integer_Plus'Access);
       Bind_Function ("#intMinus", 2,
