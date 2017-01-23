@@ -12,6 +12,18 @@ package body SK.Functions.Primitives is
       Args  : Array_Of_Objects)
       return Object;
 
+   function Evaluate_Int_First
+     (Cells : SK.Cells.Managed_Cells;
+      Args  : Array_Of_Objects)
+      return Object
+   is (To_Object (-Max_Int - 1));
+
+   function Evaluate_Int_Last
+     (Cells : SK.Cells.Managed_Cells;
+      Args  : Array_Of_Objects)
+      return Object
+   is (To_Object (Max_Int));
+
    function Evaluate_Integer_Plus
      (Cells : SK.Cells.Managed_Cells;
       Args  : Array_Of_Objects)
@@ -68,6 +80,24 @@ package body SK.Functions.Primitives is
       Args  : Array_Of_Objects)
       return Object;
 
+   function Evaluate_Untyped_Identity
+     (Cells : SK.Cells.Managed_Cells;
+      Args  : Array_Of_Objects)
+      return Object
+   is (Args (Args'First));
+
+   function Evaluate_Fail
+     (Cells : SK.Cells.Managed_Cells;
+      Args  : Array_Of_Objects)
+      return Object
+   is (raise Evaluation_Error with "#fail");
+
+   function Evaluate_Init_World
+     (Cells : SK.Cells.Managed_Cells;
+      Args  : Array_Of_Objects)
+      return Object
+   is (Initial_World);
+
    ----------------
    -- Initialise --
    ----------------
@@ -77,6 +107,8 @@ package body SK.Functions.Primitives is
       Bind_Function ("eq?", 2, Evaluate_Eq'Access);
       Bind_Function ("#intEq", 2, Evaluate_Eq'Access);
       Bind_Function ("neq?", 2, Evaluate_Neq'Access);
+      Bind_Function ("#intFirst", 0, Evaluate_Int_First'Access);
+      Bind_Function ("#intLast", 0, Evaluate_Int_Last'Access);
       Bind_Function ("#intPlus", 2, Evaluate_Integer_Plus'Access);
       Bind_Function ("#intMinus", 2,
                     Evaluate_Integer_Minus'Access);
@@ -91,6 +123,10 @@ package body SK.Functions.Primitives is
       Bind_Function ("#objLE", 2, Evaluate_Object_LE'Access);
       Bind_Function ("#objLT", 2, Evaluate_Object_LT'Access);
       Bind_Function ("#putchar", 2, Evaluate_Putchar'Access);
+      Bind_Function ("#charPos", 1, Evaluate_Untyped_Identity'Access);
+      Bind_Function ("#charVal", 1, Evaluate_Untyped_Identity'Access);
+      Bind_Function ("#fail", 0, Evaluate_Fail'Access);
+      Bind_Function ("#initWorld", 0, Evaluate_Init_World'Access);
 
    end Add_Primitives;
 
