@@ -144,7 +144,7 @@ private
    is (2#0001_1101#);
 
    function Next_World (Current_World : Object) return Object
-   is (Current_World + 16#0010#);
+   is (Current_World + 16#0100#);
 
    type Object_Pair is
       record
