@@ -5,7 +5,7 @@ package SK is
    Type_Error : exception;
    Evaluation_Error : exception;
 
-   Max_Int : constant := 2 ** 29 - 1;
+   Max_Int : constant Integer := 2 ** 29 - 1;
 
    type Combinator is (I, S, K, B, C, Sd, Bd, Cd);
 
