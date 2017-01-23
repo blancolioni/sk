@@ -192,6 +192,9 @@ package body SK.Images is
             Result := Result & "<last-argument>";
          elsif Item = Next_Argument then
             Result := Result & "<next-argument>";
+         elsif Item mod 256 = 2#0001_1101# then
+            Result := Result & "<world" & Integer'Image (-Integer (Item / 256))
+              & ">";
          else
             Result := Result & "<unknown: " & Hex_Image (Item) & ">";
          end if;
