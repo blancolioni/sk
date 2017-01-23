@@ -92,6 +92,12 @@ package body SK.Functions.Primitives is
       return Object
    is (raise Evaluation_Error with "#fail");
 
+   function Evaluate_Undefined
+     (Cells : SK.Cells.Managed_Cells;
+      Args  : Array_Of_Objects)
+      return Object
+   is (raise Evaluation_Error with "attempted to evaluate undefined");
+
    function Evaluate_Init_World
      (Cells : SK.Cells.Managed_Cells;
       Args  : Array_Of_Objects)
@@ -126,6 +132,7 @@ package body SK.Functions.Primitives is
       Bind_Function ("#charPos", 1, Evaluate_Untyped_Identity'Access);
       Bind_Function ("#charVal", 1, Evaluate_Untyped_Identity'Access);
       Bind_Function ("#fail", 0, Evaluate_Fail'Access);
+      Bind_Function ("#undefined", 0, Evaluate_Undefined'Access);
       Bind_Function ("#initWorld", 0, Evaluate_Init_World'Access);
 
    end Add_Primitives;
