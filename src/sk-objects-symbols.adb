@@ -2,12 +2,12 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded.Hash;
 
-package body SK.Symbols is
+package body SK.Objects.Symbols is
 
    type Symbol_Entry_Record is
       record
          Name    : Ada.Strings.Unbounded.Unbounded_String;
-         Id      : Symbol_Id;
+         Id      : SK.Objects.Symbol_Id;
       end record;
 
    type Symbol_Entry is access Symbol_Entry_Record;
@@ -29,7 +29,7 @@ package body SK.Symbols is
    -- Get_Name --
    --------------
 
-   function Get_Name (Id : Symbol_Id) return String is
+   function Get_Name (Id : SK.Objects.Symbol_Id) return String is
    begin
       return Ada.Strings.Unbounded.To_String
         (Vector.Element (Positive (Id)).Name);
@@ -60,4 +60,4 @@ package body SK.Symbols is
       end if;
    end Get_Symbol_Id;
 
-end SK.Symbols;
+end SK.Objects.Symbols;

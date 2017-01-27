@@ -1,472 +1,731 @@
-with Ada.Unchecked_Conversion;
+with Ada.Strings.Fixed;
+with Ada.Unchecked_Deallocation;
+with Ada.Text_IO;
 
 with SK.Compiler;
-with SK.Environments;
-with SK.Evaluator;
-with SK.Functions.Primitives;
-with SK.Images;
-with SK.Memory;
-with SK.Parser;
-with SK.Stack;
+with SK.Objects.Symbols;
+
+with SK.Machine.Evaluator;
+
+with SK.Primitives;
 
 package body SK.Machine is
 
-   type SK_Machine_Record is
-      record
-         Cells  : SK.Cells.Managed_Cells;
-         Env    : SK.Environments.Environment;
-         Start  : Object;
-      end record;
+   Trace_Stack : constant Boolean := False;
 
-   procedure Define_Primitive (M     : SK_Machine;
-                               Name  : String;
-                               Code  : String);
+   procedure Free is
+     new Ada.Unchecked_Deallocation
+       (SK.Objects.External_Object_Interface'Class,
+        External_Object_Access);
 
-   -----------
-   -- Apply --
-   -----------
+   --------------
+   -- After_GC --
+   --------------
 
-   procedure Apply
-     (M    : SK_Machine)
-   is
-      Result, Left, Right : Object;
+   overriding procedure After_GC (Machine : in out SK_Machine_Record) is
    begin
-      SK.Cells.Allocate (M.Cells, O_Application, Result);
-      SK.Stack.Pop (M.Cells, Right);
-      SK.Stack.Pop (M.Cells, Left);
-      SK.Cells.Set_Car (M.Cells, Result, Left);
-      SK.Cells.Set_Cdr (M.Cells, Result, Right);
-      SK.Stack.Push (M.Cells, Result);
-   end Apply;
+      for I in 1 .. Machine.External_Objects.Last_Index loop
+         declare
+            Item : External_Object_Record renames
+                     Machine.External_Objects (I);
+         begin
+            if Item.Marked then
+               Item.Marked := False;
+            elsif not Item.Free then
+               Item.External_Object.Finalize (Machine);
+               Free (Item.External_Object);
+               Item.Free := True;
+            end if;
+         end;
+      end loop;
+   end After_GC;
 
    -----------
    -- Apply --
    -----------
 
    overriding procedure Apply
-     (Context : Function_Call_Context)
+     (Machine : in out SK_Machine_Record)
    is
-      Cells  : constant SK.Cells.Managed_Cells :=
-                 SK.Cells.Managed_Cells (Context);
-      Result, Left, Right : Object;
+      Cdr : constant SK.Objects.Object := Machine.Pop;
+      Car : constant SK.Objects.Object := Machine.Pop;
+      T   : constant SK.Objects.Object :=
+              Machine.Apply (Car, Cdr);
    begin
-      SK.Cells.Allocate (Cells, O_Application, Result);
-      SK.Stack.Pop (Cells, Left);
-      SK.Stack.Pop (Cells, Right);
-      SK.Cells.Set_Car (Cells, Result, Left);
-      SK.Cells.Set_Cdr (Cells, Result, Right);
-      SK.Stack.Push (Cells, Result);
+      if Trace_Stack then
+         Ada.Text_IO.Put_Line
+           ("machine: cons --> " & Machine.Show (T));
+      end if;
+      Machine.Push (T);
    end Apply;
 
-   ----------
-   -- Bind --
-   ----------
-
-   procedure Bind (M         : SK_Machine;
-                   Name      : String)
-   is
-      E : Object := SK.Stack.Top (M.Cells);
-   begin
-      E := SK.Compiler.Compile (M.Cells, E);
-      SK.Stack.Push (M.Cells, E);
-
-      SK.Stack.Drop (M.Cells, 2);
-
-      SK.Environments.Define (M.Env, Name, E);
-   end Bind;
-
-   ---------
-   -- Car --
-   ---------
-
-   overriding function Car (Context : Function_Call_Context;
-                 Value   : Object)
-                 return Object
-   is
-   begin
-      return SK.Cells.Car (SK.Cells.Managed_Cells (Context), Value);
-   end Car;
-
-   ---------
-   -- Cdr --
-   ---------
-
-   overriding function Cdr (Context : Function_Call_Context;
-                 Value   : Object)
-                 return Object
-   is
-   begin
-      return SK.Cells.Cdr (SK.Cells.Managed_Cells (Context), Value);
-   end Cdr;
-
-   -------------
-   -- Compile --
-   -------------
-
-   function Compile (M : SK_Machine;
-                     E : Object)
-                     return Object
-   is
-      Result : constant Object := SK.Compiler.Compile (M.Cells, E);
-   begin
-      return SK.Compiler.Link (M.Cells, M.Env, Result);
-   end Compile;
-
-   -------------
-   -- Compile --
-   -------------
-
-   overriding procedure Compile (Context : Function_Call_Context) is
-      Cells  : constant SK.Cells.Managed_Cells :=
-                 SK.Cells.Managed_Cells (Context);
-      E      : Object;
-      Result : Object;
-   begin
-      Pop (Context, E);
-      Result := SK.Compiler.Compile (Cells, E);
-      Result := SK.Compiler.Link
-        (Cells, SK.Environments.Top_Level_Environment, Result);
-      Push (Context, Result);
-   end Compile;
-
-   --------------------
-   -- Create_Machine --
-   --------------------
-
-   function Create_Machine (Size : Natural) return SK_Machine is
-      Mem    : constant SK.Memory.Memory_Type :=
-                 SK.Memory.Create_Managed_Memory
-                   (Cell_Count     => SK.Memory.Cell_Address (Size),
-                    Base_Address   => 0);
-      Result : constant SK_Machine := new SK_Machine_Record'
-        (Cells => SK.Cells.Create_Managed_Cells (Mem),
-         Env   => SK.Environments.Top_Level_Environment,
-         Start => 0);
-   begin
-      SK.Functions.Primitives.Add_Primitives;
-
---        Define_Primitive (Result, "true", "\x.\y.y");
---        Define_Primitive (Result, "false", "\x.\y.x");
---        Define_Primitive (Result, "if", "\p.\f.\t.p f t");
-      Define_Primitive (Result, "Y", "\f.(\x.f (x x)) (\x.f (x x))");
---        Define_Primitive (Result, "cons", "\h.\t.\x.\y.y h t");
-      Define_Primitive (Result, "Y'",
-                        "S (K (S I I)) (S (S (K S) K) (K (S I I)))");
-      return Result;
-   end Create_Machine;
-
-   ----------------------
-   -- Define_Primitive --
-   ----------------------
-
-   procedure Define_Primitive (M     : SK_Machine;
-                               Name  : String;
-                               Code  : String)
-   is
-      E : Object;
-   begin
-      E := SK.Parser.Parse_String (M.Cells, Code);
-      SK.Stack.Push (M.Cells, E);
-      E := SK.Compiler.Compile (M.Cells, E);
-      SK.Stack.Push (M.Cells, E);
-      E := SK.Compiler.Link (M.Cells, M.Env, E);
-      SK.Stack.Push (M.Cells, E);
-
-      SK.Environments.Define (M.Env, Name, E);
-
-      SK.Stack.Drop (M.Cells, 3);
-
-   end Define_Primitive;
-
-   --------------
-   -- Evaluate --
-   --------------
-
-   function Evaluate
-     (M : SK_Machine;
-      E : Object)
-      return Object
-   is
-      Value : Object := E;
-   begin
-      SK.Evaluator.Evaluate (M.Cells, Value);
-      return Value;
-   end Evaluate;
-
-   --------------
-   -- Evaluate --
-   --------------
-
-   procedure Evaluate (M : SK_Machine) is
-      V : Object := SK.Stack.Top (M.Cells);
-   begin
-      V := Compile (M, V);
-      SK.Evaluator.Evaluate (M.Cells, V);
-      SK.Stack.Drop (M.Cells, 1);
-      SK.Stack.Push (M.Cells, V);
-   end Evaluate;
-
-   --------------
-   -- Evaluate --
-   --------------
-
-   overriding function Evaluate (Context : Function_Call_Context;
-                      Value   : Object)
-                      return Object
-   is
-      E : Object := Value;
-   begin
-      SK.Evaluator.Evaluate (SK.Cells.Managed_Cells (Context), E);
-      return E;
-   end Evaluate;
-
    ---------------
-   -- Get_Cells --
+   -- Before_GC --
    ---------------
 
-   function Get_Cells (M : SK_Machine) return SK.Cells.Managed_Cells is
-   begin
-      return M.Cells;
-   end Get_Cells;
-
-   ---------------------
-   -- Import_Function --
-   ---------------------
-
---     procedure Import_Function
---       (Machine       : SK_Machine;
---        Function_Name : String;
---        Arg_Count     : Natural;
---        Handler       : Foreign_Function_Handler)
---     is
---     begin
---        SK.Functions.Add_External_Function
---          (Env     => Machine.Env,
---           Name    => Function_Name,
---           Args    => Arg_Count,
---           Handler => SK.Functions.Evaluator (Handler),
---           Strict  => True);
---     end Import_Function;
-
-   ---------------------
-   -- Import_Function --
-   ---------------------
-
-   procedure Import_Function
-     (Machine       : SK_Machine;
-      Function_Name : String;
-      Arg_Count     : Natural;
-      Handler       : Foreign_Function_Handler)
+   overriding procedure Before_GC
+     (Machine : in out SK_Machine_Record)
    is
-      pragma Unreferenced (Machine);
-      function To_Evaluator is
-        new Ada.Unchecked_Conversion (Foreign_Function_Handler,
-                                      SK.Functions.Evaluator);
+      procedure Mark (Value : in out SK.Objects.Object);
+
+      ----------
+      -- Mark --
+      ----------
+
+      procedure Mark (Value : in out SK.Objects.Object) is
+      begin
+         SK.Memory.Mark (Machine.Core, Value);
+      end Mark;
    begin
-      SK.Functions.Bind_Function
-        (Name    => Function_Name,
-         Args    => Arg_Count,
-         Handler => To_Evaluator (Handler));
-   end Import_Function;
 
-   ------------------
-   -- Load_Library --
-   ------------------
-
-   procedure Load_Library
-     (M    : SK_Machine;
-      Path : String)
-   is
-   begin
-      --  Generated stub: replace with real body!
-      raise Program_Error;
-   end Load_Library;
-
-   ------------------
-   -- Load_Machine --
-   ------------------
-
-   function Load_Machine (Path : String) return SK_Machine is
-   begin
-      --  Generated stub: replace with real body!
-      raise Program_Error;
-      return Load_Machine (Path);
-   end Load_Machine;
-
-   --------------------
-   -- Low_Level_Show --
-   --------------------
-
-   function Low_Level_Show (M    : SK_Machine;
-                            Item : Object)
-                            return String
-   is
-   begin
-      return SK.Images.Low_Level_Image (M.Cells, Item);
-   end Low_Level_Show;
-
-   -------------------------------
-   -- Marshall_String_To_Object --
-   -------------------------------
-
-   overriding function Marshall_String_To_Object
-     (Context : Function_Call_Context;
-      Value   : String)
-      return Object
-   is
-   begin
-      Push (Context, "[]");
-      for I in reverse Value'Range loop
-         Push (Context, Integer'(Character'Pos (Value (I))));
-         Push (Context, ":");
-         Apply (Context);
-         Apply (Context);
+      for I in Machine.R'Range loop
+         Mark (Machine.R (I));
       end loop;
 
-      --  Ada.Text_IO.Put_Line (SK.Machine.Show_Stack_Top (Context));
-      Compile (Context);
+      for I in Machine.Args'Range loop
+         Mark (Machine.Args (I));
+      end loop;
+
+      Mark (Machine.Stack);
+      Mark (Machine.Secondary_Stack);
+      Mark (Machine.Control);
+      Mark (Machine.Argument_Stack);
+
+      for I in 1 .. Machine.External_Objects.Last_Index loop
+         declare
+            Item : External_Object_Record renames
+                     Machine.External_Objects (I);
+         begin
+            Item.Marked := False;
+         end;
+      end loop;
 
       declare
-         Result : Object;
+         procedure Set_Mark (Item : in out SK.Objects.Object);
+
+         --------------
+         -- Set_Mark --
+         --------------
+
+         procedure Set_Mark (Item : in out SK.Objects.Object) is
+         begin
+            Machine.Mark (Item);
+         end Set_Mark;
+
       begin
-         Pop (Context, Result);
+         Machine.Environment.Update (Set_Mark'Access);
+      end;
+
+   end Before_GC;
+
+   -------------
+   -- Compile --
+   -------------
+
+   procedure Compile
+     (Machine : in out SK_Machine_Record'Class)
+   is
+      E : SK.Objects.Object := Machine.Pop;
+   begin
+      E := SK.Compiler.Compile (Machine, E);
+      Machine.Push (E);
+   end Compile;
+
+   ---------------------------
+   -- Control_Size_At_Least --
+   ---------------------------
+
+   function Control_Size_At_Least
+     (Machine : SK_Machine_Record'Class;
+      Minimum : Natural)
+      return Boolean
+   is
+      use SK.Objects;
+      X : Object := Machine.Control;
+   begin
+      for I in 1 .. Minimum loop
+         if X = Nil then
+            return False;
+         end if;
+         X := Machine.Right (X);
+      end loop;
+      return True;
+   end Control_Size_At_Least;
+
+   ------------
+   -- Create --
+   ------------
+
+   function Create
+     (Core_Size : Positive)
+      return SK_Machine
+   is
+      use SK.Objects;
+      Machine : constant SK_Machine := new SK_Machine_Record;
+   begin
+      Machine.Core_Size := Core_Size;
+      Machine.Core.Create
+        (SK.Objects.Cell_Address (Core_Size),
+         SK.Memory.GC_Callback (Machine));
+
+      Machine.Stack := Nil;
+      Machine.Secondary_Stack := Nil;
+      Machine.Control := Nil;
+      Machine.Argument_Stack := Nil;
+
+      SK.Primitives.Load_Primitives (Machine.all);
+
+      return Machine;
+
+   end Create;
+
+   -------------------------------
+   -- Create_External_Reference --
+   -------------------------------
+
+   overriding function Create_External_Reference
+     (Machine : in out SK_Machine_Record;
+      External : SK.Objects.External_Object_Interface'Class)
+      return SK.Objects.Object
+   is
+      use SK.Objects;
+      Address : External_Object_Id := 0;
+      New_Item : constant External_Object_Access :=
+                   new SK.Objects.External_Object_Interface'Class'
+                     (External);
+      New_Entry : constant External_Object_Record :=
+                    (External_Object => New_Item,
+                     Free            => False,
+                     Marked          => False);
+   begin
+      for I in 1 .. Machine.External_Objects.Last_Index loop
+         if Machine.External_Objects (I).Free then
+            Address := I;
+            exit;
+         end if;
+      end loop;
+
+      if Address = 0 then
+         Machine.External_Objects.Append (New_Entry);
+         Address := Machine.External_Objects.Last_Index;
+      else
+         Machine.External_Objects (Address) := New_Entry;
+      end if;
+
+      return SK.Objects.To_Object (Address);
+   end Create_External_Reference;
+
+   ----------------------
+   -- Define_Top_Level --
+   ----------------------
+
+   overriding procedure Define_Symbol
+     (Machine : in out SK_Machine_Record;
+      Name    : SK.Objects.Symbol_Id;
+      Value   : SK.Objects.Object)
+   is
+   begin
+      if Machine.Environment.Contains (Name) then
+         Machine.Environment.Replace (Name, Value);
+      else
+         Machine.Environment.Insert (Name, Value);
+      end if;
+   end Define_Symbol;
+
+   ------------------
+   -- Drop_Control --
+   ------------------
+
+   procedure Drop_Control
+     (Machine : in out SK_Machine_Record'Class;
+      Count   : Positive := 1)
+   is
+   begin
+      for I in 1 .. Count loop
+         Machine.Control := Machine.Right (Machine.Control);
+      end loop;
+   end Drop_Control;
+
+   --------------
+   -- Evaluate --
+   --------------
+
+   overriding function Evaluate
+     (Machine     : in out SK_Machine_Record;
+      Expression  : SK.Objects.Object)
+      return SK.Objects.Object
+   is
+   begin
+      Machine.Push (Expression);
+      Machine.Evaluate;
+
+      declare
+         use SK.Objects;
+         Result : constant Object := Machine.Pop;
+      begin
+         if Machine.Stack /= Nil then
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Standard_Error,
+               "warning: machine state not clean after evaluation");
+            Machine.Report_State;
+         end if;
          return Result;
       end;
 
-   end Marshall_String_To_Object;
+   end Evaluate;
 
-   ------------------
-   -- Parse_String --
-   ------------------
+   --------------
+   -- Evaluate --
+   --------------
 
-   function Parse_String (M    : SK_Machine;
-                          Text : String)
-                          return Object
+   procedure Evaluate (Machine : in out SK_Machine_Record'Class) is
+      use Ada.Calendar;
+      Top : constant Boolean := not Machine.Evaluating;
+   begin
+      if Top then
+         Machine.Evaluating := True;
+         Machine.Start_Eval := Ada.Calendar.Clock;
+      end if;
+
+      SK.Machine.Evaluator.Eval (Machine);
+
+      if Top then
+         Machine.Eval_Time := Machine.Eval_Time + (Clock - Machine.Start_Eval);
+         Machine.Evaluating := False;
+      end if;
+
+   end Evaluate;
+
+   -------------------------
+   -- Get_External_Object --
+   -------------------------
+
+   overriding function Get_External_Object
+     (Machine : SK_Machine_Record;
+      Item    : SK.Objects.Object)
+      return access SK.Objects.External_Object_Interface'Class
+   is
+      Address : constant Real_External_Address :=
+                  SK.Objects.To_External_Object_Id (Item);
+   begin
+      return Machine.External_Objects (Address).External_Object;
+   end Get_External_Object;
+
+   ----------------
+   -- Get_Symbol --
+   ----------------
+
+   overriding procedure Get_Symbol
+     (Machine : SK_Machine_Record;
+      Name    : SK.Objects.Symbol_Id;
+      Value   : out SK.Objects.Object;
+      Found   : out Boolean)
    is
    begin
-      return SK.Parser.Parse_String (M.Cells, Text);
-   end Parse_String;
+      if Machine.Environment.Contains (Name) then
+         Value := Machine.Environment.Element (Name);
+         Found := True;
+      else
+         Found := False;
+      end if;
+   end Get_Symbol;
+
+   -------------
+   -- Is_Free --
+   -------------
+
+   function Is_Free (Machine : SK_Machine_Record'Class;
+                     Address : SK.Objects.Cell_Address)
+                     return Boolean
+   is
+   begin
+      return not SK.Memory.Valid (Machine.Core, Address);
+   end Is_Free;
+
+   ----------
+   -- Link --
+   ----------
+
+   procedure Link
+     (Machine : in out SK_Machine_Record'Class)
+   is
+      use SK.Objects;
+      function Do_Link (E : Object) return Object;
+
+      -------------
+      -- Do_Link --
+      -------------
+
+      function Do_Link (E : Object) return Object is
+      begin
+         if Is_Symbol (E) then
+            declare
+               Name  : constant Symbol_Id := To_Symbol (E);
+               Defn  : Object;
+               Found : Boolean;
+            begin
+               Machine.Get_Symbol (Name, Defn, Found);
+               if not Found then
+                  Ada.Text_IO.Put_Line
+                    (Ada.Text_IO.Standard_Error,
+                     "link error: "
+                     & Symbols.Get_Name (Name) & " not defined");
+                  return E;
+               else
+                  if not Machine.Linked.Contains (Name) then
+                     Defn := Do_Link (Defn);
+                     Machine.Environment.Replace (Name, Defn);
+                     Machine.Linked.Insert (Name, True);
+                  end if;
+                  return Defn;
+               end if;
+            end;
+         elsif Is_Application (E) then
+            Machine.Push_Secondary (E);
+            Machine.Push (Do_Link (Machine.Left (Machine.Top_Secondary)));
+            Machine.Push (Do_Link (Machine.Right (Machine.Top_Secondary)));
+            Machine.Pop_Secondary;
+            Machine.Apply;
+            return Machine.Pop;
+         else
+            return E;
+         end if;
+      end Do_Link;
+
+   begin
+      Machine.Push (Do_Link (Machine.Pop));
+   end Link;
+
+   ----------
+   -- Mark --
+   ----------
+
+   overriding procedure Mark
+     (Machine : in out SK_Machine_Record;
+      Start   : in out SK.Objects.Object)
+   is
+   begin
+      SK.Memory.Mark (Machine.Core, Start);
+   end Mark;
+
+   --------------------------
+   -- Mark_External_Object --
+   --------------------------
+
+   overriding procedure Mark_External_Object
+     (Machine : in out SK_Machine_Record;
+      External : SK.Objects.External_Object_Id;
+      Mark     : not null access
+        procedure (X : in out SK.Objects.Object))
+   is
+   begin
+      Machine.External_Objects (External).External_Object.Mark
+        (Machine, Mark);
+      Machine.External_Objects (External).Marked := True;
+   end Mark_External_Object;
 
    ---------
    -- Pop --
    ---------
 
-   overriding procedure Pop (Context : Function_Call_Context;
-                  Value   : out Object)
+   overriding function Pop
+     (Machine : in out SK_Machine_Record)
+      return SK.Objects.Object
+   is
+      use SK.Objects;
+      Result : constant SK.Objects.Object :=
+                 Machine.Left (Machine.Stack);
+   begin
+      if Trace_Stack then
+         Ada.Text_IO.Put_Line
+           ("machine: pop " & Machine.Show (Result)
+            & " <-- " & Machine.Show (Machine.Stack));
+      end if;
+      Machine.Stack := Machine.Right (Machine.Stack);
+      return Result;
+   end Pop;
+
+   -----------------
+   -- Pop_Control --
+   -----------------
+
+   function Pop_Control
+     (Machine : in out SK_Machine_Record'Class)
+      return SK.Objects.Object
    is
    begin
-      SK.Stack.Pop (SK.Cells.Managed_Cells (Context), Value);
-   end Pop;
+      return X : constant SK.Objects.Object :=
+        Machine.Left (Machine.Control)
+      do
+         if Trace_Stack then
+            Ada.Text_IO.Put_Line
+              ("machine: pop-control " & Machine.Show (X)
+               & " <-- " & Machine.Show (Machine.Control));
+         end if;
+         Machine.Control := Machine.Right (Machine.Control);
+      end return;
+   end Pop_Control;
+
+   -------------------
+   -- Pop_Secondary --
+   -------------------
+
+   overriding procedure Pop_Secondary
+     (Machine : in out SK_Machine_Record)
+   is
+   begin
+      Machine.Secondary_Stack := Machine.Right (Machine.Secondary_Stack);
+   end Pop_Secondary;
+
+   ----------
+   -- Push --
+   ----------
+
+   overriding procedure Push
+     (Machine : in out SK_Machine_Record;
+      Value   : SK.Objects.Object)
+   is
+   begin
+      Machine.Stack := Machine.Apply (Value, Machine.Stack);
+      if Trace_Stack then
+         Ada.Text_IO.Put_Line
+           ("machine: push " & Machine.Show (Value)
+            & " --> " & Machine.Show (Machine.Stack));
+      end if;
+   end Push;
 
    ----------
    -- Push --
    ----------
 
    procedure Push
-     (M    : SK_Machine;
-      Item : SK.Object)
+     (Machine : in out SK_Machine_Record;
+      Symbol_Name : String)
    is
+      use SK.Objects, SK.Objects.Symbols;
    begin
-      SK.Stack.Push (M.Cells, Item);
+      Machine.Push
+        (To_Object (Get_Symbol_Id (Symbol_Name)));
    end Push;
 
-   ----------
-   -- Push --
-   ----------
+   ------------------
+   -- Push_Control --
+   ------------------
 
-   overriding procedure Push (Context : Function_Call_Context;
-                   Value   : Object)
+   procedure Push_Control
+     (Machine : in out SK_Machine_Record'Class;
+      Value   : SK.Objects.Object)
    is
    begin
-      SK.Stack.Push (SK.Cells.Managed_Cells (Context), Value);
-   end Push;
+      if Trace_Stack then
+         Ada.Text_IO.Put_Line
+           ("Push control: stack = "
+            & Machine.Show (Machine.Control));
+      end if;
 
-   ----------
-   -- Push --
-   ----------
+      Machine.Push (Value);
+      Machine.Push (Machine.Control);
+      Machine.Apply;
+      Machine.Control := Machine.Pop;
 
-   procedure Push (Context : Function_Call_Context;
-                   Value   : Integer)
+      if Trace_Stack then
+         Ada.Text_IO.Put_Line
+           ("Push control: stack = "
+            & Machine.Show (Machine.Control));
+      end if;
+
+   end Push_Control;
+
+   --------------------
+   -- Push_Secondary --
+   --------------------
+
+   overriding procedure Push_Secondary
+     (Machine : in out SK_Machine_Record;
+      Value   : SK.Objects.Object)
    is
    begin
-      Push (Context, To_Object (Value));
-   end Push;
-
-   ----------
-   -- Push --
-   ----------
-
-   procedure Push (Context   : Function_Call_Context;
-                   Reference : String)
-   is
-   begin
-      Push (Context, Get_Symbol (Reference));
-   end Push;
+      Machine.Secondary_Stack :=
+        Machine.Apply (Value, Machine.Secondary_Stack);
+   end Push_Secondary;
 
    -------------------
    -- Report_Memory --
    -------------------
 
-   procedure Report_Memory (Machine : SK_Machine) is
+   procedure Report_Memory
+     (Machine : SK_Machine_Record'Class)
+   is
    begin
-      SK.Cells.Report_Memory (Machine.Cells);
+      SK.Memory.Report (Machine.Core);
    end Report_Memory;
 
+   ------------------
+   -- Report_State --
+   ------------------
+
+   overriding procedure Report_State
+     (Machine : in out SK_Machine_Record)
+   is
+   begin
+      Machine.Report_Memory;
+      Ada.Text_IO.Put_Line
+        (" S: " & Machine.Show (Machine.Stack));
+      Ada.Text_IO.Put_Line
+        (" D: " & Machine.Show (Machine.Secondary_Stack));
+      Ada.Text_IO.Put_Line
+        (" A: " & Machine.Show (Machine.Argument_Stack));
+      Ada.Text_IO.Put_Line
+        (" C: " & Machine.Show (Machine.Control));
+      Ada.Text_IO.Put_Line
+        ("Eval:"
+         & Natural'Image (Natural (Machine.Eval_Time * 1000.0))
+         & "ms");
+   end Report_State;
+
+   --------------
+   -- Set_Left --
+   --------------
+
+   overriding procedure Set_Left
+     (Machine     : in out SK_Machine_Record;
+      Application : in     SK.Objects.Object;
+      New_Left    : in SK.Objects.Object)
+   is
+   begin
+      Machine.Core.Set_Car (SK.Objects.Get_Address (Application),
+                            New_Left);
+   end Set_Left;
+
+   ---------------
+   -- Set_Right --
+   ---------------
+
+   overriding procedure Set_Right
+     (Machine     : in out SK_Machine_Record;
+      Application : in     SK.Objects.Object;
+      New_Right   : in SK.Objects.Object)
+   is
+   begin
+      Machine.Core.Set_Cdr (SK.Objects.Get_Address (Application),
+                            New_Right);
+   end Set_Right;
+
    ----------
    -- Show --
    ----------
 
-   function Show (M    : SK_Machine;
-                  Item : Object)
-                  return String
+   overriding function Show
+     (Machine : in out SK_Machine_Record;
+      Value   : SK.Objects.Object)
+      return String
    is
+      use SK.Objects;
    begin
-      return SK.Images.Image (M.Cells, Item);
+      if Value = Nil then
+         return "()";
+      elsif Is_Integer (Value) then
+         return Ada.Strings.Fixed.Trim
+           (Integer'Image (To_Integer (Value)),
+            Ada.Strings.Left);
+      elsif Is_Symbol (Value) then
+         return Symbols.Get_Name (To_Symbol (Value));
+      elsif Is_Function (Value) then
+         return Show (To_Function (Value));
+      elsif Is_External_Object (Value) then
+         return Machine.Get_External_Object (Value).Print (Machine);
+      elsif Is_Selection (Value) then
+         return "select" & Integer'Image (-Selection_Count (Value));
+      elsif Is_Application (Value) then
+         declare
+            Car : constant Object := Machine.Left (Value);
+            Cdr : constant Object := Machine.Right (Value);
+            Left_Lambda : constant Boolean :=
+                            Is_Application (Car)
+                              and then Is_Application (Machine.Left (Car))
+              and then Machine.Left (Machine.Left (Car)) = Lambda;
+         begin
+            if Is_Application (Car)
+              and then Machine.Left (Car) = Lambda
+            then
+               return "\" & Machine.Show (Machine.Right (Car))
+                 & "." & Machine.Show (Cdr);
+            elsif Is_Application (Cdr) then
+               if Left_Lambda then
+                  return "(" & Machine.Show (Car) & ") ("
+                    & Machine.Show (Cdr) & ")";
+               else
+                  return Machine.Show (Car) & " ("
+                    & Machine.Show (Cdr) & ")";
+               end if;
+            elsif Left_Lambda then
+               return "(" & Machine.Show (Car) & ") "
+                 & Machine.Show (Cdr);
+            else
+               return Machine.Show (Car) & " "
+                 & Machine.Show (Cdr);
+            end if;
+         end;
+      elsif Is_Symbol (Value) then
+         return SK.Objects.Symbols.Get_Name (SK.Objects.To_Symbol (Value));
+      elsif Value = S then
+         return "S";
+      elsif Value = K then
+         return "K";
+      elsif Value = I then
+         return "I";
+      elsif Value = C then
+         return "C";
+      elsif Value = B then
+         return "B";
+      elsif Value = Lambda then
+         return "\";
+      elsif Value = Primitive then
+         return "[primitive]";
+      else
+         return "<error: unknown object type ["
+           & Hex_Image (Value)
+           & "]";
+      end if;
    end Show;
 
-   ----------
-   -- Show --
-   ----------
+   ---------
+   -- Top --
+   ---------
 
-   function Show (Context    : Function_Call_Context;
-                  Item       : Object)
-                  return String
+   overriding function Top
+     (Machine : SK_Machine_Record;
+      Index   : Positive := 1)
+      return SK.Objects.Object
    is
+
+      function Get_Nth
+        (From : SK.Objects.Object;
+         N    : Positive)
+         return SK.Objects.Object
+      is (if N = 1
+          then Machine.Left (From)
+          else Get_Nth (Machine.Right (From), N - 1));
+
    begin
-      return SK.Images.Image (SK.Cells.Managed_Cells (Context), Item);
-   end Show;
+      return Get_Nth (Machine.Stack, Index);
+   end Top;
 
-   --------------------
-   -- Show_Stack_Top --
-   --------------------
+   -----------------
+   -- Top_Control --
+   -----------------
 
-   function Show_Stack_Top (M    : SK_Machine)
-                           return String
+   function Top_Control
+     (Machine : SK_Machine_Record'Class;
+      Index   : Positive := 1)
+      return SK.Objects.Object
    is
+      It : SK.Objects.Object := Machine.Control;
    begin
-      return Show (M, SK.Stack.Top (M.Cells));
-   end Show_Stack_Top;
-
-   --------------------
-   -- Show_Stack_Top --
-   --------------------
-
-   function Show_Stack_Top (Context : Function_Call_Context)
-                           return String
-   is
-   begin
-      return SK.Images.Image
-        (SK.Cells.Managed_Cells (Context),
-         SK.Stack.Top (SK.Cells.Managed_Cells (Context)));
-   end Show_Stack_Top;
-
-   -----------
-   -- Start --
-   -----------
-
-   function Start (M : SK_Machine) return Object is
-   begin
-      return M.Start;
-   end Start;
+      for I in 1 .. Index - 1 loop
+         It := Machine.Right (It);
+      end loop;
+      return Machine.Left (It);
+   end Top_Control;
 
 end SK.Machine;

@@ -3,3 +3,5 @@ syntax: glob
 *.ali
 *~
 b~*.ad[bs]
+build/*
+src/old/*
