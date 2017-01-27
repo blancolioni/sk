@@ -6,4 +6,7 @@ compiler_option = "-g"
 compiler_option = "-gnatwa"
 compiler_option = "-gnatyabcefhiklmnoprst"
 compiler_option = "-gnat2012"
+main_unit = sk-driver
 linker_option = "-g"
+post_install = "sk --self-test"
+exec_name = sk

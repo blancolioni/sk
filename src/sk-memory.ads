@@ -1,94 +1,115 @@
+with SK.Objects;
+
 package SK.Memory is
 
-   type Memory_Type is private;
+   type SK_Memory is tagged limited private;
 
-   type Cell_Address is mod 2**32;
+   function Valid (Memory  : SK_Memory;
+                   Address : SK.Objects.Cell_Address)
+                   return Boolean;
 
-   type Register is range 0 .. 15;
+   procedure Get
+     (Memory    : SK_Memory;
+      Address   : SK.Objects.Cell_Address;
+      Car, Cdr  : out SK.Objects.Object)
+     with Pre => Valid (Memory, Address);
 
-   function To_Cell_Address (Item : Object) return Cell_Address;
+   function Car (Memory : SK_Memory;
+                 Address : SK.Objects.Cell_Address)
+                 return SK.Objects.Object
+     with Pre => Valid (Memory, Address);
 
-   function In_Range (Mem : Memory_Type;
-                      Item : Object)
-                     return Boolean;
+   function Cdr (Memory : SK_Memory;
+                 Address : SK.Objects.Cell_Address)
+                 return SK.Objects.Object
+     with Pre => Valid (Memory, Address);
 
-   function Create_Managed_Memory (Cell_Count     : Cell_Address;
-                                   Base_Address   : Cell_Address)
-                                   return Memory_Type;
-   --  Cell_Count: number of cells in this memory
+   procedure Set
+     (Memory            : in out SK_Memory;
+      Address           : SK.Objects.Cell_Address;
+      New_Car, New_Cdr  : SK.Objects.Object)
+     with Pre => Valid (Memory, Address),
+     Post => SK.Objects."=" (Car (Memory, Address), New_Car)
+     and then SK.Objects."=" (Cdr (Memory, Address), New_Cdr);
 
-   function Create_Extensible_Memory (Base_Address : Cell_Address)
-                                     return Memory_Type;
+   procedure Set_Car
+     (Memory  : in out SK_Memory;
+      Address : SK.Objects.Cell_Address;
+      New_Car : SK.Objects.Object)
+     with Pre => Valid (Memory, Address),
+     Post => SK.Objects."=" (Car (Memory, Address), New_Car);
 
-   function Get_Cell_Count (From : Memory_Type) return Cell_Address;
+   procedure Set_Cdr
+     (Memory  : in out SK_Memory;
+      Address : SK.Objects.Cell_Address;
+      New_Cdr : SK.Objects.Object)
+     with Pre => Valid (Memory, Address),
+     Post => SK.Objects."=" (Cdr (Memory, Address), New_Cdr);
 
-   procedure Set_Register (M     : in Memory_Type;
-                           R     : in Register;
-                           Value : in Object);
-   function Get_Register (M : Memory_Type;
-                          R : Register)
-                          return Object;
+   function Allocate
+     (Memory    : in out SK_Memory;
+      Car, Cdr  : SK.Objects.Object)
+      return SK.Objects.Object
+     with Post => SK.Objects.Is_Application (Allocate'Result)
+     and then Valid (Memory, SK.Objects.Get_Address (Allocate'Result));
 
-   function Car (M    : Memory_Type;
-                 Addr : Cell_Address)
-                 return Object;
+   type GC_Interface is limited interface;
 
-   function Cdr (M    : Memory_Type;
-                 Addr : Cell_Address)
-                 return Object;
+   procedure Before_GC (GC : in out GC_Interface) is null;
+   procedure After_GC (GC : in out GC_Interface) is null;
+   procedure Mark_External_Object
+     (GC       : in out GC_Interface;
+      External : SK.Objects.External_Object_Id;
+      Mark     : not null access
+        procedure (X : in out SK.Objects.Object))
+   is null;
 
-   procedure Set_Car (M    : Memory_Type;
-                      Addr : Cell_Address;
-                      To   : Object);
+   type GC_Callback is access all GC_Interface'Class;
 
-   procedure Set_Cdr (M    : Memory_Type;
-                      Addr : Cell_Address;
-                      To   : Object);
+   procedure Create
+     (Memory    : in out SK_Memory'class;
+      Core_Size : SK.Objects.Cell_Address;
+      Callback  : GC_Callback);
 
-   procedure Copy_Structure (From    : in     Memory_Type;
-                             To      : in out Memory_Type;
-                             Start   : in out Object);
+   procedure Report
+     (Memory : SK_Memory);
 
-   procedure Copy_Cell (M    : in out Memory_Type;
-                        Cell : in out Object;
-                        Dest : in     Cell_Address);
+   procedure Mark (Memory : in out SK_Memory;
+                   Item   : in out SK.Objects.Object);
 
-   procedure Allocate (M             : in out Memory_Type;
-                       Type_Bits     : in     Object;
-                       X, Y          : in out Object;
-                       Result        :    out Object);
-
-   type GC_Callback is access procedure;
-
-   procedure Set_GC_Callback (Callback : GC_Callback);
-
-   procedure Report_Memory (M : Memory_Type);
+   procedure Reserve_Memory
+     (Memory  : in out SK_Memory;
+      Minimum : Natural);
 
 private
 
-   type Cell_Array is array (Cell_Address range <>) of Object_Pair;
-   type Cell_Array_Access is access Cell_Array;
-
-   type Register_Array is array (Register) of Object;
-   type Register_Array_Access is access Register_Array;
-
-   type Memory_Type is
+   type Object_Pair is
       record
-         Cells        : Cell_Array_Access;
-         Space_Size   : Cell_Address;
-         To_Space     : Cell_Address;
-         From_Space   : Cell_Address;
-         Free         : Cell_Address;
-         Top          : Cell_Address;
-         Scan         : Cell_Address;
-         R            : Register_Array_Access;
-         Managed      : Boolean;
-         Extensible   : Boolean;
-      end record;
+         Car, Cdr : SK.Objects.Object;
+      end record
+     with Pack, Size => 64;
 
-   pragma Inline (Car);
-   pragma Inline (Cdr);
-   pragma Inline (To_Cell_Address);
-   pragma Inline (Get_Register);
+   type Core_Memory_Type is
+     array (SK.Objects.Cell_Address range <>) of Object_Pair;
+
+   type SK_Memory is tagged limited
+      record
+         Core        : access Core_Memory_Type;
+         Top         : SK.Objects.Cell_Address;
+         Free        : SK.Objects.Cell_Address;
+         From_Space  : SK.Objects.Cell_Address;
+         To_Space    : SK.Objects.Cell_Address;
+         Space_Size  : SK.Objects.Cell_Address;
+         Scan        : SK.Objects.Cell_Address;
+         Callback    : GC_Callback;
+         Alloc_Car   : SK.Objects.Object;
+         Alloc_Cdr   : SK.Objects.Object;
+         Test        : SK.Objects.Object;
+         Alloc_Count : Natural;
+         GC_Count    : Natural  := 0;
+         GC_Time     : Duration := 0.0;
+         Allocations : Natural := 0;
+         Collections : Natural := 0;
+      end record;
 
 end SK.Memory;

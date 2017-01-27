@@ -1,31 +1,36 @@
 with Ada.Exceptions;
 with Ada.Text_IO;
 
-with SK.Stack;
+with SK.Objects.Symbols;
 
 package body SK.Parser is
 
    Parse_Error : exception;
    Bad_Index   : Positive;
 
-   procedure Do_Parse (Cells  : in     SK.Cells.Managed_Cells;
-                       S      : in     String;
-                       Index  : in out Positive);
+   procedure Do_Parse
+     (Store : in out SK.Objects.Object_Store'Class;
+      S      : in     String;
+      Index  : in out Positive);
 
-   procedure Parse_Symbol (S      : in     String;
-                           Index  : in out Positive;
-                           Sym    :    out Object;
-                           Simple : in     Boolean   := False);
+   procedure Parse_Symbol
+     (S      : in     String;
+      Index  : in out Positive;
+      Sym    :    out SK.Objects.Object;
+      Simple : in     Boolean   := False);
 
-   procedure Bad_Parse (Index   : Integer;
-                        Message : String);
+   procedure Bad_Parse
+     (Index   : Integer;
+      Message : String);
 
-   procedure Expect (S     : in     String;
-                     Index : in out Positive;
-                     Char  : in     Character);
+   procedure Expect
+     (S     : in     String;
+      Index : in out Positive;
+      Char  : in     Character);
 
-   procedure Skip_Spaces (S     : in     String;
-                          Index : in out Positive);
+   procedure Skip_Spaces
+     (S     : in     String;
+      Index : in out Positive);
 
    ---------------
    -- Bad_Parse --
@@ -43,10 +48,12 @@ package body SK.Parser is
    -- Do_Parse --
    --------------
 
-   procedure Do_Parse (Cells  : in     SK.Cells.Managed_Cells;
-                       S      : in     String;
-                       Index  : in out Positive)
+   procedure Do_Parse
+     (Store : in out SK.Objects.Object_Store'Class;
+      S     : in     String;
+      Index : in out Positive)
    is
+      use SK.Objects;
       First : Boolean := True;
       Item  : Object;
    begin
@@ -57,23 +64,20 @@ package body SK.Parser is
          case S (Index) is
             when '(' =>
                Index := Index + 1;
-               Do_Parse (Cells, S, Index);
+               Do_Parse (Store, S, Index);
                Expect (S, Index, ')');
             when '\' =>
                Index := Index + 1;
                declare
                   Var    : Object;
-                  Expr   : Object;
-                  Result : Object;
                begin
                   Parse_Symbol (S, Index, Var, Simple => True);
                   Expect (S, Index, '.');
-                  Do_Parse (Cells, S, Index);
-                  SK.Cells.Allocate (Cells, O_Lambda, Result);
-                  SK.Stack.Pop (Cells, Expr);
-                  SK.Cells.Set_Car (Cells, Result, Var);
-                  SK.Cells.Set_Cdr (Cells, Result, Expr);
-                  SK.Stack.Push (Cells, Result);
+                  Store.Push (SK.Objects.Lambda);
+                  Store.Push (Var);
+                  Store.Apply;
+                  Do_Parse (Store, S, Index);
+                  Store.Apply;
                end;
             when '0' .. '9' =>
                declare
@@ -85,27 +89,17 @@ package body SK.Parser is
                      Index := Index + 1;
                   end loop;
                   Item := To_Object (Value);
-                  SK.Stack.Push (Cells, Item);
+                  Store.Push (Item);
                end;
             when others =>
                Parse_Symbol (S, Index, Item);
-               SK.Stack.Push (Cells, Item);
+               Store.Push (Item);
          end case;
 
          if First then
             First  := False;
-
          else
-            declare
-               Result, Left, Right : Object;
-            begin
-               SK.Cells.Allocate (Cells, O_Application, Result);
-               SK.Stack.Pop (Cells, Right);
-               SK.Stack.Pop (Cells, Left);
-               SK.Cells.Set_Car (Cells, Result, Left);
-               SK.Cells.Set_Cdr (Cells, Result, Right);
-               SK.Stack.Push (Cells, Result);
-            end;
+            Store.Apply;
          end if;
       end loop;
 
@@ -135,14 +129,14 @@ package body SK.Parser is
    -- Parse_String --
    ------------------
 
-   function Parse_String (Cells : SK.Cells.Managed_Cells;
-                          S     : String)
-                          return Object
+   function Parse_String
+     (Store : in out SK.Objects.Object_Store'Class;
+      S     : String)
+      return SK.Objects.Object
    is
       Index  : Positive := S'First;
-      Result : Object   := Fail_Object;
    begin
-      Do_Parse (Cells, S, Index);
+      Do_Parse (Store, S, Index);
       begin
          Skip_Spaces (S, Index);
          if Index <= S'Last then
@@ -150,8 +144,7 @@ package body SK.Parser is
          end if;
       end;
 
-      SK.Stack.Pop (Cells, Result);
-      return Result;
+      return Store.Pop;
 
    exception
       when E : Parse_Error =>
@@ -163,17 +156,18 @@ package body SK.Parser is
             Ada.Text_IO.Put_Line (Dashes & "^");
          end;
          Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Message (E));
-         return Fail_Object;
+         return SK.Objects.Fail;
    end Parse_String;
 
    ------------------
    -- Parse_Symbol --
    ------------------
 
-   procedure Parse_Symbol (S      : in     String;
-                           Index  : in out Positive;
-                           Sym    :    out Object;
-                           Simple : in     Boolean   := False)
+   procedure Parse_Symbol
+     (S      : in     String;
+      Index  : in out Positive;
+      Sym    :    out SK.Objects.Object;
+      Simple : in     Boolean   := False)
    is
       function Symbol_Character (Ch : Character) return Boolean;
 
@@ -202,17 +196,20 @@ package body SK.Parser is
             Sym_Name : constant String := S (Start .. Index - 1);
          begin
             if Sym_Name = "S" then
-               Sym := SK.S;
+               Sym := SK.Objects.S;
             elsif Sym_Name = "K" then
-               Sym := K;
+               Sym := SK.Objects.K;
             elsif Sym_Name = "I" then
-               Sym := I;
+               Sym := SK.Objects.I;
             elsif Sym_Name = "B" then
-               Sym := B;
+               Sym := SK.Objects.B;
             elsif Sym_Name = "C" then
-               Sym := C;
+               Sym := SK.Objects.C;
             else
-               Sym := Get_Symbol (S (Start .. Index - 1));
+               Sym :=
+                 SK.Objects.To_Object
+                   (SK.Objects.Symbols.Get_Symbol_Id
+                      (S (Start .. Index - 1)));
             end if;
          end;
       end;

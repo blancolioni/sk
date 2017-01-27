@@ -1,9 +1,10 @@
-with SK.Cells;
+with SK.Objects;
 
-private package SK.Parser is
+package SK.Parser is
 
-   function Parse_String (Cells : SK.Cells.Managed_Cells;
-                          S     : String)
-                          return Object;
+   function Parse_String
+     (Store : in out SK.Objects.Object_Store'Class;
+      S     : String)
+      return SK.Objects.Object;
 
 end SK.Parser;
