@@ -316,6 +316,8 @@ package body SK.Machine.Evaluator is
                            Machine.Push_Control
                              (Binding.Evaluate (Machine));
 
+                           Machine.Args := (others => Nil);
+
                            if Debug_Eval then
                               Ada.Text_IO.Put_Line
                                 ("result: " & Machine.Show (Machine.Control));
