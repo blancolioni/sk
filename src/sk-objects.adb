@@ -100,6 +100,20 @@ package body SK.Objects is
       end return;
    end Pop;
 
+   -------------------
+   -- Pop_Secondary --
+   -------------------
+
+   function Pop_Secondary
+     (Store : in out Object_Store'Class)
+      return Object
+   is
+   begin
+      return X : constant Object := Store.Top_Secondary do
+         Store.Pop_Secondary;
+      end return;
+   end Pop_Secondary;
+
    ----------
    -- Push --
    ----------

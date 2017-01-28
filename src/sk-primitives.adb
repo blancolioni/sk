@@ -28,10 +28,15 @@ package body SK.Primitives is
      function (X : Integer) return Integer;
 
    type Int_To_Int_Binding is
-     new Strict_Infix_Binding with
+     new Strict_Binding with
       record
          Eval : Int_To_Int_Evaluator;
       end record;
+
+   overriding function Argument_Count
+     (Bound_Function : Int_To_Int_Binding)
+      return Natural
+   is (1);
 
    overriding function Evaluate
      (Bound_Function : Int_To_Int_Binding;
@@ -251,6 +256,22 @@ package body SK.Primitives is
       Store.Define_Symbol
         (SK.Objects.Symbols.Get_Symbol_Id ("#initWorld"),
          SK.Objects.Initial_World);
+
+      Store.Define_Symbol
+        (SK.Objects.Symbols.Get_Symbol_Id ("#undefined"),
+         SK.Objects.Undefined);
+
+      Store.Define_Symbol
+        (SK.Objects.Symbols.Get_Symbol_Id ("#I"),
+         SK.Objects.I);
+
+      Store.Define_Symbol
+        (SK.Objects.Symbols.Get_Symbol_Id ("#S"),
+         SK.Objects.S);
+
+      Store.Define_Symbol
+        (SK.Objects.Symbols.Get_Symbol_Id ("#K"),
+         SK.Objects.K);
 
    end Load_Int_Primitives;
 
