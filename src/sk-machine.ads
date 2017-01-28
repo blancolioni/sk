@@ -24,8 +24,13 @@ package SK.Machine is
       Value   : SK.Objects.Object);
 
    procedure Push
-     (Machine : in out SK_Machine_Record;
+     (Machine     : in out SK_Machine_Record'Class;
       Symbol_Name : String);
+
+   procedure Lambda
+     (Machine       : in out SK_Machine_Record'Class;
+      Variable_Name : String);
+   --  create a lambda binding around the top of stack
 
    overriding function Pop
      (Machine : in out SK_Machine_Record)
@@ -87,6 +92,11 @@ package SK.Machine is
       Value   : SK.Objects.Object)
       return String;
 
+   function Show_Head
+     (Machine : in out SK_Machine_Record'Class;
+      Value   : SK.Objects.Object)
+      return String;
+
    overriding function Argument_Count
      (Machine : SK_Machine_Record)
       return Natural;
@@ -121,6 +131,16 @@ package SK.Machine is
      (Machine : in out SK_Machine_Record;
       Name    : SK.Objects.Symbol_Id;
       Value   : SK.Objects.Object);
+
+   procedure Define_Symbol
+     (Machine : in out SK_Machine_Record;
+      Name    : String);
+   --  defines Name using top of stack
+
+   procedure Bind
+     (Machine : in out SK_Machine_Record;
+      Name    : String);
+   --  compile top of stack, and bind the result to name
 
    overriding procedure Get_Symbol
      (Machine : SK_Machine_Record;

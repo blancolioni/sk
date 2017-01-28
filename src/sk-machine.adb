@@ -1,3 +1,4 @@
+with Ada.Containers.Ordered_Sets;
 with Ada.Strings.Fixed;
 with Ada.Unchecked_Deallocation;
 with Ada.Text_IO;
@@ -118,6 +119,21 @@ package body SK.Machine is
 
    end Before_GC;
 
+   ----------
+   -- Bind --
+   ----------
+
+   procedure Bind
+     (Machine : in out SK_Machine_Record;
+      Name    : String)
+   is
+   begin
+      Machine.Compile;
+      Machine.Define_Symbol
+        (SK.Objects.Symbols.Get_Symbol_Id (Name),
+         Machine.Pop);
+   end Bind;
+
    -------------
    -- Compile --
    -------------
@@ -215,9 +231,9 @@ package body SK.Machine is
       return SK.Objects.To_Object (Address);
    end Create_External_Reference;
 
-   ----------------------
-   -- Define_Top_Level --
-   ----------------------
+   -------------------
+   -- Define_Symbol --
+   -------------------
 
    overriding procedure Define_Symbol
      (Machine : in out SK_Machine_Record;
@@ -230,6 +246,20 @@ package body SK.Machine is
       else
          Machine.Environment.Insert (Name, Value);
       end if;
+   end Define_Symbol;
+
+   -------------------
+   -- Define_Symbol --
+   -------------------
+
+   procedure Define_Symbol
+     (Machine : in out SK_Machine_Record;
+      Name    : String)
+   is
+   begin
+      Machine.Define_Symbol
+        (SK.Objects.Symbols.Get_Symbol_Id (Name),
+         Machine.Pop);
    end Define_Symbol;
 
    ------------------
@@ -342,6 +372,23 @@ package body SK.Machine is
       return not SK.Memory.Valid (Machine.Core, Address);
    end Is_Free;
 
+   ------------
+   -- Lambda --
+   ------------
+
+   procedure Lambda
+     (Machine       : in out SK_Machine_Record'Class;
+      Variable_Name : String)
+   is
+   begin
+      Machine.Push_Secondary (Machine.Pop);
+      Machine.Push (SK.Objects.Lambda);
+      Machine.Push (Variable_Name);
+      Machine.Apply;
+      Machine.Push (Machine.Pop_Secondary);
+      Machine.Apply;
+   end Lambda;
+
    ----------
    -- Link --
    ----------
@@ -350,13 +397,14 @@ package body SK.Machine is
      (Machine : in out SK_Machine_Record'Class)
    is
       use SK.Objects;
-      function Do_Link (E : Object) return Object;
+
+      procedure Do_Link (E : Object);
 
       -------------
       -- Do_Link --
       -------------
 
-      function Do_Link (E : Object) return Object is
+      procedure Do_Link (E : Object) is
       begin
          if Is_Symbol (E) then
             declare
@@ -370,30 +418,34 @@ package body SK.Machine is
                     (Ada.Text_IO.Standard_Error,
                      "link error: "
                      & Symbols.Get_Name (Name) & " not defined");
-                  return E;
+                  Machine.Push (E);
                else
                   if not Machine.Linked.Contains (Name) then
-                     Defn := Do_Link (Defn);
-                     Machine.Environment.Replace (Name, Defn);
                      Machine.Linked.Insert (Name, True);
+                     Do_Link (Defn);
+                     Machine.Environment.Replace (Name, Machine.Pop);
                   end if;
-                  return Defn;
+                  Machine.Push (Defn);
                end if;
             end;
          elsif Is_Application (E) then
             Machine.Push_Secondary (E);
-            Machine.Push (Do_Link (Machine.Left (Machine.Top_Secondary)));
-            Machine.Push (Do_Link (Machine.Right (Machine.Top_Secondary)));
-            Machine.Pop_Secondary;
-            Machine.Apply;
-            return Machine.Pop;
+            Do_Link (Machine.Left (Machine.Top_Secondary));
+            Do_Link (Machine.Right (Machine.Top_Secondary));
+            declare
+               E1 : constant Object := Machine.Pop_Secondary;
+            begin
+               Machine.Set_Right (E1, Machine.Pop);
+               Machine.Set_Left (E1, Machine.Pop);
+               Machine.Push (E1);
+            end;
          else
-            return E;
+            Machine.Push (E);
          end if;
       end Do_Link;
 
    begin
-      Machine.Push (Do_Link (Machine.Pop));
+      Do_Link (Machine.Pop);
    end Link;
 
    ----------
@@ -499,7 +551,7 @@ package body SK.Machine is
    ----------
 
    procedure Push
-     (Machine : in out SK_Machine_Record;
+     (Machine     : in out SK_Machine_Record'Class;
       Symbol_Name : String)
    is
       use SK.Objects, SK.Objects.Symbols;
@@ -621,73 +673,135 @@ package body SK.Machine is
       return String
    is
       use SK.Objects;
-   begin
-      if Value = Nil then
-         return "()";
-      elsif Is_Integer (Value) then
-         return Ada.Strings.Fixed.Trim
-           (Integer'Image (To_Integer (Value)),
-            Ada.Strings.Left);
-      elsif Is_Symbol (Value) then
-         return Symbols.Get_Name (To_Symbol (Value));
-      elsif Is_Function (Value) then
-         return Show (To_Function (Value));
-      elsif Is_External_Object (Value) then
-         return Machine.Get_External_Object (Value).Print (Machine);
-      elsif Is_Selection (Value) then
-         return "select" & Integer'Image (-Selection_Count (Value));
-      elsif Is_Application (Value) then
-         declare
-            Car : constant Object := Machine.Left (Value);
-            Cdr : constant Object := Machine.Right (Value);
-            Left_Lambda : constant Boolean :=
-                            Is_Application (Car)
-                              and then Is_Application (Machine.Left (Car))
-              and then Machine.Left (Machine.Left (Car)) = Lambda;
-         begin
-            if Is_Application (Car)
-              and then Machine.Left (Car) = Lambda
-            then
-               return "\" & Machine.Show (Machine.Right (Car))
-                 & "." & Machine.Show (Cdr);
-            elsif Is_Application (Cdr) then
-               if Left_Lambda then
-                  return "(" & Machine.Show (Car) & ") ("
-                    & Machine.Show (Cdr) & ")";
-               else
-                  return Machine.Show (Car) & " ("
-                    & Machine.Show (Cdr) & ")";
-               end if;
-            elsif Left_Lambda then
-               return "(" & Machine.Show (Car) & ") "
-                 & Machine.Show (Cdr);
-            else
-               return Machine.Show (Car) & " "
-                 & Machine.Show (Cdr);
+
+      package Seen_Set is
+        new Ada.Containers.Ordered_Sets
+          (SK.Objects.Cell_Address, SK.Objects."<",
+           SK.Objects."=");
+
+      Seen : Seen_Set.Set;
+
+      function Internal_Show (Value : SK.Objects.Object) return String;
+
+      -------------------
+      -- Internal_Show --
+      -------------------
+
+      function Internal_Show (Value : SK.Objects.Object) return String is
+      begin
+         if Value = Nil then
+            return "()";
+         elsif Is_Integer (Value) then
+            return Ada.Strings.Fixed.Trim
+              (Integer'Image (To_Integer (Value)),
+               Ada.Strings.Left);
+         elsif Is_Symbol (Value) then
+            return Symbols.Get_Name (To_Symbol (Value));
+         elsif Is_Function (Value) then
+            return Show (To_Function (Value));
+         elsif Is_External_Object (Value) then
+            return Machine.Get_External_Object (Value).Print (Machine);
+         elsif Is_Selection (Value) then
+            return "select" & Integer'Image (-Selection_Count (Value));
+         elsif Is_Application (Value) then
+            if Seen.Contains (Get_Address (Value)) then
+               return "<recursive>";
             end if;
-         end;
-      elsif Is_Symbol (Value) then
-         return SK.Objects.Symbols.Get_Name (SK.Objects.To_Symbol (Value));
-      elsif Value = S then
-         return "S";
-      elsif Value = K then
-         return "K";
-      elsif Value = I then
-         return "I";
-      elsif Value = C then
-         return "C";
-      elsif Value = B then
-         return "B";
-      elsif Value = Lambda then
-         return "\";
-      elsif Value = Primitive then
-         return "[primitive]";
-      else
-         return "<error: unknown object type ["
-           & Hex_Image (Value)
-           & "]";
-      end if;
+
+            Seen.Insert (Get_Address (Value));
+
+            declare
+               Car         : constant Object := Machine.Left (Value);
+               Cdr         : constant Object := Machine.Right (Value);
+               Left_Lambda : constant Boolean :=
+                               Is_Application (Car)
+                                 and then Is_Application (Machine.Left (Car))
+                 and then Machine.Left (Machine.Left (Car)) = Lambda;
+            begin
+               if Is_Application (Car)
+                 and then Machine.Left (Car) = Lambda
+               then
+                  return "\" & Internal_Show (Machine.Right (Car))
+                    & "." & Internal_Show (Cdr);
+               elsif Is_Application (Cdr) then
+                  if Left_Lambda then
+                     return "(" & Internal_Show (Car) & ") ("
+                       & Internal_Show (Cdr) & ")";
+                  else
+                     return Internal_Show (Car) & " ("
+                       & Internal_Show (Cdr) & ")";
+                  end if;
+               elsif Left_Lambda then
+                  return "(" & Internal_Show (Car) & ") "
+                    & Internal_Show (Cdr);
+               else
+                  return Internal_Show (Car) & " "
+                    & Internal_Show (Cdr);
+               end if;
+            end;
+         elsif Is_Symbol (Value) then
+            return SK.Objects.Symbols.Get_Name (SK.Objects.To_Symbol (Value));
+         elsif Value = S then
+            return "S";
+         elsif Value = K then
+            return "K";
+         elsif Value = I then
+            return "I";
+         elsif Value = C then
+            return "C";
+         elsif Value = B then
+            return "B";
+         elsif Value = Lambda then
+            return "\";
+         elsif Value = Primitive then
+            return "[primitive]";
+         else
+            return Hex_Image (Value);
+         end if;
+      end Internal_Show;
+
+   begin
+      return Internal_Show (Value);
    end Show;
+
+   ---------------
+   -- Show_Head --
+   ---------------
+
+   function Show_Head
+     (Machine : in out SK_Machine_Record'Class;
+      Value   : SK.Objects.Object)
+      return String
+   is
+      use SK.Objects;
+
+   begin
+      if Is_Application (Value) then
+         if Is_Application (Machine.Left (Value)) then
+            declare
+               It : Object := Machine.Left (Value);
+            begin
+               while Is_Application (It) loop
+                  It := Machine.Left (It);
+               end loop;
+               if Is_Application (Machine.Right (Value)) then
+                  return Machine.Show (It) & " ...";
+               else
+                  return "(" & Machine.Show (It) & " ... "
+                    & Machine.Show (Machine.Right (Value)) & ")";
+               end if;
+            end;
+         elsif Is_Application (Machine.Right (Value)) then
+            return Machine.Show (Machine.Left (Value))
+              & " ...";
+         else
+            return Machine.Show (Machine.Left (Value))
+              & " " & Machine.Show (Machine.Right (Value));
+         end if;
+      else
+         return Machine.Show (Value);
+      end if;
+   end Show_Head;
 
    ---------
    -- Top --

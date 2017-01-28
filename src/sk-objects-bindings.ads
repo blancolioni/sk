@@ -26,6 +26,15 @@ package SK.Objects.Bindings is
      (Bound_Function : Bound_Function_Interface'Class)
       return Function_Id;
 
+   type General_Function_Handler is access
+     function (Store : in out Object_Store'Class)
+               return Object;
+
+   function Add_Binding
+     (Handler        : General_Function_Handler;
+      Argument_Count : Natural)
+      return Function_Id;
+
    function Get_Binding
      (Fn : Function_Id)
       return Bound_Function_Interface'Class;

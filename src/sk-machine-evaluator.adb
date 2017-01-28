@@ -108,10 +108,6 @@ package body SK.Machine.Evaluator is
                   Machine.Set_Left (Y, I);
                   Machine.Set_Right (Y, Machine.Right (X));
                   Machine.Push_Control (Machine.Right (X));
-                  if Debug_Eval then
-                     Ada.Text_IO.Put_Line
-                       ("K: " & Machine.Show (Machine.Top_Control));
-                  end if;
                   Changed := True;
                end;
             end if;
@@ -124,9 +120,6 @@ package body SK.Machine.Evaluator is
                Machine.Push (Machine.Right (Machine.Top_Control (3)));
                Machine.Apply;
                Machine.Apply;
-               if Debug_Eval then
-                  Ada.Text_IO.Put_Line ("S: " & Machine.Show (Machine.Top));
-               end if;
                Machine.Drop_Control (2);
                Machine.Set_Left (Machine.Top_Control, I);
                Machine.Set_Right (Machine.Top_Control, Machine.Top);
@@ -141,9 +134,6 @@ package body SK.Machine.Evaluator is
                Machine.Push (Machine.Right (Machine.Top_Control (3)));
                Machine.Apply;
                Machine.Apply;
-               if Debug_Eval then
-                  Ada.Text_IO.Put_Line ("B: " & Machine.Show (Machine.Top));
-               end if;
                Machine.Drop_Control (2);
                Machine.Set_Left (Machine.Top_Control, I);
                Machine.Set_Right (Machine.Top_Control, Machine.Top);
@@ -158,9 +148,6 @@ package body SK.Machine.Evaluator is
                Machine.Apply;
                Machine.Push (Machine.Right (Machine.Top_Control (2)));
                Machine.Apply;
-               if Debug_Eval then
-                  Ada.Text_IO.Put_Line ("C: " & Machine.Show (Machine.Top));
-               end if;
                Machine.Drop_Control (2);
                Machine.Set_Left (Machine.Top_Control, I);
                Machine.Set_Right (Machine.Top_Control, Machine.Top);
@@ -170,15 +157,27 @@ package body SK.Machine.Evaluator is
             end if;
          elsif Is_Selection (It) then
             if Machine.Control_Size_At_Least (Selection_Count (It) + 1) then
-               Machine.Push_Secondary (Machine.Pop_Control);
-               for I in 1 .. Selection_Count (It) loop
-                  Machine.Push (Machine.Pop_Control);
-               end loop;
-               Machine.Push (Machine.Apply (Primitive, It));
-               Machine.Push_Control
-                 (Machine.Right (Machine.Top_Secondary));
-               Machine.Pop_Secondary;
-               Changed := True;
+               declare
+                  First : Object renames Machine.R (1);
+               begin
+                  First := Machine.Pop_Control;
+
+                  if Debug_Eval then
+                     Ada.Text_IO.Put_Line
+                       ("select: index = " & Machine.Show (First));
+                  end if;
+
+                  for I in 1 .. Selection_Count (It) loop
+                     Machine.Push (Machine.Pop_Control);
+                  end loop;
+                  Machine.Push_Secondary (Machine.Control);
+                  Machine.Control := Nil;
+
+                  Machine.Push (Machine.Apply (Primitive, It));
+                  Machine.Push_Control
+                    (Machine.Right (First));
+                  Changed := True;
+               end;
             end if;
          elsif Is_Function (It) then
             declare
@@ -195,25 +194,31 @@ package body SK.Machine.Evaluator is
                   Machine.Push_Control (Machine.Pop);
                   Changed := True;
                elsif Machine.Control_Size_At_Least (Fn.Argument_Count) then
-                  Machine.Push_Secondary (Machine.Pop_Control);
-                  for I in 1 .. Fn.Argument_Count - 1 loop
-                     if Debug_Eval then
-                        Ada.Text_IO.Put_Line
-                          ("arg: "
-                           & Machine.Show
-                             (Machine.Right (Machine.Top_Control)));
-                     end if;
-                     Machine.Push (Machine.Pop_Control);
-                  end loop;
-                  Machine.Push (Primitive);
-                  Machine.Push (It);
-                  Machine.Push (0);
-                  Machine.Apply;
-                  Machine.Apply;
-                  Machine.Push_Control
-                    (Machine.Right (Machine.Top_Secondary));
-                  Machine.Pop_Secondary;
-                  Changed := True;
+                  declare
+                     First : Object renames Machine.R (1);
+                  begin
+                     First := Machine.Pop_Control;
+
+                     for I in 1 .. Fn.Argument_Count - 1 loop
+                        if Debug_Eval then
+                           Ada.Text_IO.Put_Line
+                             ("arg: "
+                              & Machine.Show
+                                (Machine.Right (Machine.Top_Control)));
+                        end if;
+                        Machine.Push (Machine.Pop_Control);
+                     end loop;
+                     Machine.Push_Secondary (Machine.Control);
+                     Machine.Control := Nil;
+
+                     Machine.Push (Primitive);
+                     Machine.Push (It);
+                     Machine.Push (0);
+                     Machine.Apply;
+                     Machine.Apply;
+                     Machine.Push_Control (Machine.Right (First));
+                     Changed := True;
+                  end;
                end if;
             end;
          elsif Is_Symbol (It) then
@@ -255,10 +260,11 @@ package body SK.Machine.Evaluator is
                         Count : constant Positive :=
                                   Selection_Count (Prim);
                         Index : constant Positive :=
-                                  To_Integer (It);
+                                  To_Integer (It) + 1;
                         Current : Natural := Count;
                      begin
                         Machine.Drop;
+                        Machine.Control := Machine.Pop_Secondary;
                         for I in 1 .. Count loop
                            if Current = Index then
                               Machine.Push_Control
@@ -289,7 +295,8 @@ package body SK.Machine.Evaluator is
                                  & Machine.Show (It) & " "
                                  & Machine.Show (Machine.Stack));
                               Ada.Text_IO.Put_Line
-                                ("Control: " & Machine.Show (Machine.Control));
+                                ("Control: "
+                                 & Machine.Show (Machine.Control));
                            end if;
 
                            for I in reverse
@@ -305,8 +312,14 @@ package body SK.Machine.Evaluator is
                            Machine.Args (Binding.Argument_Count) := It;
                            Machine.Arg_Count := Binding.Argument_Count;
 
+                           Machine.Control := Machine.Pop_Secondary;
                            Machine.Push_Control
                              (Binding.Evaluate (Machine));
+
+                           if Debug_Eval then
+                              Ada.Text_IO.Put_Line
+                                ("result: " & Machine.Show (Machine.Control));
+                           end if;
 
                            Machine.Set_Left (Machine.Top, I);
                            Machine.Set_Right

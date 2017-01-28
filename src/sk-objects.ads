@@ -157,6 +157,10 @@ package SK.Objects is
      (Store : in out Object_Store)
    is abstract;
 
+   function Pop_Secondary
+     (Store : in out Object_Store'Class)
+      return Object;
+
    function Top_Secondary
      (Store : Object_Store)
       return Object
@@ -303,7 +307,7 @@ private
    Function_Immediate_Tag  : constant := 33;
    External_Immediate_Tag  : constant := 34;
    Selection_Immediate_Tag : constant := 35;
-   World_Immediate_Tag     : constant := 35;
+   World_Immediate_Tag     : constant := 36;
 
    type Symbol_Id is new Immediate_Object_Range;
    type Function_Id is new Immediate_Object_Range;
