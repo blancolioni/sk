@@ -201,7 +201,6 @@ private
          Stack             : SK.Objects.Object;
          Secondary_Stack   : SK.Objects.Object;
          Control           : SK.Objects.Object;
-         Argument_Stack    : SK.Objects.Object;
          R                 : Register_Values     :=
                                (others => SK.Objects.Nil);
          Args              : Argument_Values :=
