@@ -80,7 +80,7 @@ begin
    end if;
 
    Machine.Push (SK.Objects.To_Selection_Object (2));
-   Machine.Push (2);
+   Machine.Push (1);
    Machine.Apply;
    Machine.Push (2);
    Machine.Apply;
