@@ -23,6 +23,10 @@ package SK.Objects is
      (Current_World : Object)
       return Object;
 
+   function Show_Atom (Value : Object) return String;
+   --  Returns a text representation of Value.
+   --  Non-atomic values and symbols have their hex image returned instead.
+
    type Symbol_Id is private;
 
    function Is_Symbol (Item : Object) return Boolean;

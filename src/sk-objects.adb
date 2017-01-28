@@ -168,4 +168,51 @@ package body SK.Objects is
       Stack := Store.Pop;
    end Push;
 
+   ---------------
+   -- Show_Atom --
+   ---------------
+
+   function Show_Atom (Value : Object) return String is
+   begin
+      if Value = Nil then
+         return "()";
+      elsif Is_Integer (Value) then
+         declare
+            Image : constant String := Integer'Image (To_Integer (Value));
+         begin
+            if Image (Image'First) = ' ' then
+               return Image (Image'First + 1 .. Image'Last);
+            else
+               return Image;
+            end if;
+         end;
+      elsif Is_Symbol (Value) then
+         return Hex_Image (Value);
+      elsif Is_Function (Value) then
+         return Show (To_Function (Value));
+      elsif Is_Selection (Value) then
+         return "select" & Integer'Image (-Selection_Count (Value));
+      elsif Value = S then
+         return "S";
+      elsif Value = K then
+         return "K";
+      elsif Value = I then
+         return "I";
+      elsif Value = C then
+         return "C";
+      elsif Value = B then
+         return "B";
+      elsif Value = Lambda then
+         return "\";
+      elsif Value = Primitive then
+         return "[primitive]";
+      elsif Value.Tag = Immediate_Object
+        and then Immediate_Tag (Value) = World_Immediate_Tag
+      then
+         return "world" & Integer'Image (-Integer (Immediate_Payload (Value)));
+      else
+         return Hex_Image (Value);
+      end if;
+   end Show_Atom;
+
 end SK.Objects;
