@@ -1,5 +1,4 @@
 with Ada.Containers.Ordered_Sets;
-with Ada.Strings.Fixed;
 with Ada.Unchecked_Deallocation;
 with Ada.Text_IO;
 
@@ -689,20 +688,8 @@ package body SK.Machine is
 
       function Internal_Show (Value : SK.Objects.Object) return String is
       begin
-         if Value = Nil then
-            return "()";
-         elsif Is_Integer (Value) then
-            return Ada.Strings.Fixed.Trim
-              (Integer'Image (To_Integer (Value)),
-               Ada.Strings.Left);
-         elsif Is_Symbol (Value) then
-            return Symbols.Get_Name (To_Symbol (Value));
-         elsif Is_Function (Value) then
-            return Show (To_Function (Value));
-         elsif Is_External_Object (Value) then
+         if Is_External_Object (Value) then
             return Machine.Get_External_Object (Value).Print (Machine);
-         elsif Is_Selection (Value) then
-            return "select" & Integer'Image (-Selection_Count (Value));
          elsif Is_Application (Value) then
             if Seen.Contains (Get_Address (Value)) then
                return "<recursive>";
@@ -741,22 +728,8 @@ package body SK.Machine is
             end;
          elsif Is_Symbol (Value) then
             return SK.Objects.Symbols.Get_Name (SK.Objects.To_Symbol (Value));
-         elsif Value = S then
-            return "S";
-         elsif Value = K then
-            return "K";
-         elsif Value = I then
-            return "I";
-         elsif Value = C then
-            return "C";
-         elsif Value = B then
-            return "B";
-         elsif Value = Lambda then
-            return "\";
-         elsif Value = Primitive then
-            return "[primitive]";
          else
-            return Hex_Image (Value);
+            return SK.Objects.Show_Atom (Value);
          end if;
       end Internal_Show;
 
