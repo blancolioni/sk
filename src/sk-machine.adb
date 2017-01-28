@@ -89,7 +89,6 @@ package body SK.Machine is
       Mark (Machine.Stack);
       Mark (Machine.Secondary_Stack);
       Mark (Machine.Control);
-      Mark (Machine.Argument_Stack);
 
       for I in 1 .. Machine.External_Objects.Last_Index loop
          declare
@@ -186,7 +185,6 @@ package body SK.Machine is
       Machine.Stack := Nil;
       Machine.Secondary_Stack := Nil;
       Machine.Control := Nil;
-      Machine.Argument_Stack := Nil;
 
       SK.Primitives.Load_Primitives (Machine.all);
 
@@ -624,8 +622,6 @@ package body SK.Machine is
         (" S: " & Machine.Show (Machine.Stack));
       Ada.Text_IO.Put_Line
         (" D: " & Machine.Show (Machine.Secondary_Stack));
-      Ada.Text_IO.Put_Line
-        (" A: " & Machine.Show (Machine.Argument_Stack));
       Ada.Text_IO.Put_Line
         (" C: " & Machine.Show (Machine.Control));
       Ada.Text_IO.Put_Line
