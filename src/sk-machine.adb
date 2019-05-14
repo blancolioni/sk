@@ -481,7 +481,6 @@ package body SK.Machine is
      (Machine : in out SK_Machine_Record)
       return SK.Objects.Object
    is
-      use SK.Objects;
       Result : constant SK.Objects.Object :=
                  Machine.Left (Machine.Stack);
    begin
