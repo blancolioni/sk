@@ -12,8 +12,7 @@ package body SK.Primitives is
    overriding function Is_Strict
      (Bound_Function : Strict_Binding;
       Argument_Index : Positive)
-      return Boolean
-   is (True);
+      return Boolean;
 
    type Strict_Infix_Binding is
      abstract new Strict_Binding
@@ -119,6 +118,16 @@ package body SK.Primitives is
       return Integer
    is (X - Y);
 
+   function Eval_Int_Div
+     (X, Y : Integer)
+      return Integer
+   is (X / Y);
+
+   function Eval_Int_Mod
+     (X, Y : Integer)
+      return Integer
+   is (X mod Y);
+
    function Eval_Int_Mult
      (X, Y : Integer)
       return Integer
@@ -158,6 +167,20 @@ package body SK.Primitives is
       Ada.Text_IO.Put (Character'Val (SK.Objects.To_Integer (Value)));
       return SK.Objects.Next_World (World);
    end Eval_Put_Char;
+
+   ---------------
+   -- Is_Strict --
+   ---------------
+
+   overriding function Is_Strict
+     (Bound_Function : Strict_Binding;
+      Argument_Index : Positive)
+      return Boolean
+   is
+      pragma Unreferenced (Bound_Function, Argument_Index);
+   begin
+      return True;
+   end Is_Strict;
 
    -------------------------
    -- Load_Int_Primitives --
@@ -236,6 +259,8 @@ package body SK.Primitives is
       Bind ("#intId", Eval_Int_Id'Access);
       Bind ("#intPlus", Eval_Int_Plus'Access);
       Bind ("#intMinus", Eval_Int_Minus'Access);
+      Bind ("#intDiv", Eval_Int_Div'Access);
+      Bind ("#intMod", Eval_Int_Mod'Access);
       Bind ("#intMult", Eval_Int_Mult'Access);
       Bind ("#intEq", Eval_Int_Eq'Access);
       Bind ("#intNeq", Eval_Int_Neq'Access);

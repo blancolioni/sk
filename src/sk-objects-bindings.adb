@@ -20,8 +20,7 @@ package body SK.Objects.Bindings is
    overriding function Is_Strict
      (Bound_Function : General_Binding;
       Argument_Index : Positive)
-      return Boolean
-   is (True);
+      return Boolean;
 
    overriding function Argument_Count
      (Bound_Function : General_Binding)
@@ -75,5 +74,18 @@ package body SK.Objects.Bindings is
    begin
       return Bindings.Element (Fn);
    end Get_Binding;
+
+   ---------------
+   -- Is_Strict --
+   ---------------
+
+   overriding function Is_Strict
+     (Bound_Function : General_Binding;
+      Argument_Index : Positive)
+      return Boolean
+   is
+   begin
+      return True;
+   end Is_Strict;
 
 end SK.Objects.Bindings;
