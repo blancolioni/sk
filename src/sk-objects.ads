@@ -440,7 +440,7 @@ private
    function Get (Store : aliased Object_Store'Class;
                  Value : Object)
                  return Object_Cursor
-   is (Store'Access, Value);
+   is (Store'Unchecked_Access, Value);
 
    function Top_Secondary_Cursor
      (Store : aliased Object_Store'Class) return Object_Cursor

@@ -92,9 +92,11 @@ private
    type Core_Memory_Type is
      array (SK.Objects.Cell_Address range <>) of Object_Pair;
 
+   type Core_Memory_Access is access all Core_Memory_Type;
+
    type SK_Memory is tagged limited
       record
-         Core        : access Core_Memory_Type;
+         Core        : Core_Memory_Access;
          Top         : SK.Objects.Cell_Address;
          Free        : SK.Objects.Cell_Address;
          From_Space  : SK.Objects.Cell_Address;
